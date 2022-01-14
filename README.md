@@ -33,4 +33,4 @@ http://192.168.29.240:3000/play
 }
 
 
-if symbol and position entered are correct then staus will be 200 ok🆗 and again send json format with different positons untill the game drawn or finds the winner.
+if symbol and position entered are correct then staus will be 200 ok🆗 and again repeat step 2 with different positons untill the game drawn or finds the winner.
