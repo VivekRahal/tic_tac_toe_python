@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK House Survey Visual Advisor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background" aria-hidden="true">
+        <span class="background__orb orb--one"></span>
+        <span class="background__orb orb--two"></span>
+        <span class="background__orb orb--three"></span>
+    </div>
+
+    <div class="app" role="application">
+        <header class="hero">
+            <div class="hero__content card-3d" data-tilt>
+                <span class="badge">RICS Aligned Insights</span>
+                <h1>UK House Survey Visual Advisor</h1>
+                <p>
+                    Upload a photograph from your site visit, describe the issue, and receive a narrative aligned with the
+                    <strong>RICS Home Survey Standard (2021)</strong>. The assistant highlights potential risks, recommended actions,
+                    and follow-up requirements for Chartered Surveyors.
+                </p>
+                <ul class="hero__list" role="list">
+                    <li>Visual-first capture with contextual notes.</li>
+                    <li>Automated narrative structured around RICS condition ratings.</li>
+                    <li>Surveyor-ready output for Level 2 &amp; Level 3 reports.</li>
+                </ul>
+            </div>
+
+            <div class="hero__visual">
+                <div class="visual-card card-3d" data-tilt>
+                    <div class="visual-card__inner">
+                        <svg class="visual-card__icon" viewBox="0 0 220 220" aria-hidden="true" focusable="false">
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#91f4ff"></stop>
+                                    <stop offset="100%" stop-color="#4776E6"></stop>
+                                </linearGradient>
+                                <linearGradient id="gradientRoof" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffd97a"></stop>
+                                    <stop offset="100%" stop-color="#ff7eb3"></stop>
+                                </linearGradient>
+                            </defs>
+                            <rect x="35" y="90" width="150" height="90" rx="18" fill="url(#gradient)" opacity="0.9"></rect>
+                            <rect x="80" y="120" width="60" height="60" rx="12" fill="#ffffff" opacity="0.75"></rect>
+                            <path d="M40 100 L110 40 L180 100" fill="url(#gradientRoof)" />
+                            <path d="M105 60 L105 25 L125 25 L125 78" fill="#ffefc5" opacity="0.9" />
+                            <circle cx="60" cy="140" r="16" fill="#ffffff" opacity="0.8"></circle>
+                            <circle cx="160" cy="140" r="16" fill="#ffffff" opacity="0.8"></circle>
+                            <path d="M35 180 L185 180" stroke="rgba(255,255,255,0.45)" stroke-width="6" stroke-linecap="round" />
+                        </svg>
+                        <div class="visual-card__glow"></div>
+                    </div>
+                    <p class="visual-card__caption">Immersive 3D property insight canvas</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="layout">
+            <section class="panel panel--input card-3d" data-tilt aria-labelledby="survey-form-title">
+                <div class="panel__header">
+                    <h2 id="survey-form-title">Capture your inspection insight</h2>
+                    <p>
+                        Combine imagery with structured commentary so the analysis can mirror the phrasing and prioritisation used in
+                        professional RICS reporting.
+                    </p>
+                </div>
+                <form id="survey-form" novalidate>
+                    <label class="field" for="image-input">
+                        <span class="field__label">Property image</span>
+                        <span class="field__hint">Supported formats: JPG, PNG. Clear daylight elevation shots work best.</span>
+                        <input type="file" id="image-input" accept="image/*">
+                    </label>
+                    <div class="image-preview" id="image-preview" aria-live="polite">
+                        <span class="image-preview__placeholder">Your chosen image will be previewed here with subtle lighting.</span>
+                    </div>
+
+                    <label class="field" for="question-input">
+                        <span class="field__label">What should we investigate?</span>
+                        <span class="field__hint">Describe observed defects, context, and any limitations on inspection.</span>
+                        <textarea id="question-input" rows="5" placeholder="Example: Cracking noted above the bay window at the front elevation."></textarea>
+                    </label>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Generate RICS-style narrative</button>
+                        <button type="button" class="btn-secondary" id="reset-button">Reset</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel panel--analysis card-3d" data-tilt aria-labelledby="analysis-title">
+                <div class="panel__header">
+                    <h2 id="analysis-title">Narrative analysis</h2>
+                    <p>Condition ratings and recommended follow-up crafted in the language of RICS survey outputs.</p>
+                </div>
+
+                <div id="analysis-output" class="analysis-output" aria-live="polite">
+                    <div class="analysis-output__empty">
+                        <h3>Awaiting your inspection details</h3>
+                        <p>
+                            Submit an image and notes to generate a tailored commentary with indicative condition ratings, investigation
+                            advice, and client guidance.
+                        </p>
+                        <ul>
+                            <li>Uses key phrases from the RICS Home Survey Standard for consistent reporting.</li>
+                            <li>Highlights areas requiring urgent attention versus routine maintenance.</li>
+                            <li>Captures limitations so expectations are clearly managed.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <p>
+                Built for UK residential surveyors. Always verify outcomes against your professional judgement and the latest RICS
+                guidance before issuing client-facing material.
+            </p>
+        </footer>
+    </div>
+
+    <script src="app.js" defer></script>
+</body>
+</html>

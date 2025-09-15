@@ -34,3 +34,20 @@ http://192.168.29.240:3000/play
 
 
 if symbol and position entered are correct then staus will be 200 ok🆗 and again repeat step 2 with different positons untill the game drawn or finds the winner.
+
+---
+
+## UK House Survey Visual Advisor
+
+The `frontend/` folder contains a standalone web experience that creates a 3D, glassmorphism-inspired interface for a UK house survey assistant. The interface allows surveyors to upload an inspection image, describe an observed issue, and receive AI-style narrative guidance aligned with the RICS Home Survey Standard.
+
+### Previewing the interface
+
+Open the static page directly in your browser or serve it locally:
+
+```bash
+cd frontend
+python -m http.server 8000
+```
+
+Then visit http://localhost:8000 in your browser. The interactive card surfaces respond to mouse movement for a parallax 3D effect while the analysis panel generates condition ratings and references tailored to the input narrative.
