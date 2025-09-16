@@ -78,7 +78,7 @@ const handleReset = () => {
           placeholder="Example: Cracking noted above the bay window at the front elevation."
         ></textarea>
       </label>
-
+      
       <div class="form-actions">
         <button type="submit" class="btn-primary">Generate RICS-style narrative</button>
         <button type="button" class="btn-secondary" id="reset-button" @click="handleReset">Reset</button>
