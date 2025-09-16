@@ -12,9 +12,8 @@ const props = defineProps({
 </script>
 
 <template>
-  <section class="panel panel--analysis" aria-labelledby="analysis-title">
+  <section class="panel panel--analysis card-3d" v-tilt aria-labelledby="analysis-title">
     <div class="panel__header">
-      <span class="panel__eyebrow">Step 2 • Narrative review</span>
       <h2 id="analysis-title">Narrative analysis</h2>
       <p>Condition ratings and recommended follow-up crafted in the language of RICS survey outputs.</p>
     </div>

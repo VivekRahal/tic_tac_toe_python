@@ -340,32 +340,27 @@ const handleReset = () => {
 </script>
 
 <template>
-  <div class="app-shell" role="application">
-    <header class="masthead" role="banner">
-      <div class="masthead__brand">
-        <span class="brand-mark" aria-hidden="true">S</span>
-        <span class="brand-name">SurveyScope</span>
-      </div>
-      <nav class="masthead__links" aria-label="Primary">
-        <a href="#">Overview</a>
-        <a href="#">Templates</a>
-        <a href="#">Pricing</a>
-      </nav>
-      <button type="button" class="masthead__cta">Request demo</button>
-    </header>
+  <div>
+    <div class="background" aria-hidden="true">
+      <span class="background__orb orb--one"></span>
+      <span class="background__orb orb--two"></span>
+      <span class="background__orb orb--three"></span>
+    </div>
 
-    <HeroSection />
+    <div class="app" role="application">
+      <HeroSection />
 
-    <main class="layout">
-      <SurveyForm @generate="handleGenerate" @reset="handleReset" />
-      <AnalysisPanel ref="analysisPanelRef" :analysis="analysis" :default-state="defaultState" />
-    </main>
+      <main class="layout">
+        <SurveyForm @generate="handleGenerate" @reset="handleReset" />
+        <AnalysisPanel ref="analysisPanelRef" :analysis="analysis" :default-state="defaultState" />
+      </main>
 
-    <footer class="site-footer">
-      <p>
-        Built for UK residential surveyors. Always verify outcomes against your professional judgement and the latest RICS
-        guidance before issuing client-facing material.
-      </p>
-    </footer>
+      <footer class="site-footer">
+        <p>
+          Built for UK residential surveyors. Always verify outcomes against your professional judgement and the latest RICS
+          guidance before issuing client-facing material.
+        </p>
+      </footer>
+    </div>
   </div>
 </template>

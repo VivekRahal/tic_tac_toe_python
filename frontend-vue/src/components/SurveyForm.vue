@@ -45,19 +45,18 @@ const handleReset = () => {
 </script>
 
 <template>
-  <section class="panel panel--input" aria-labelledby="survey-form-title">
+  <section class="panel panel--input card-3d" v-tilt aria-labelledby="survey-form-title">
     <div class="panel__header">
-      <span class="panel__eyebrow">Step 1 • Observation capture</span>
       <h2 id="survey-form-title">Capture your inspection insight</h2>
       <p>
-        Combine imagery with structured commentary so the analysis can mirror the phrasing and prioritisation used in
-        professional RICS reporting.
+        Combine imagery with structured commentary so the analysis can mirror the phrasing and prioritisation used in professional
+        RICS reporting.
       </p>
     </div>
     <form @submit.prevent="handleSubmit" novalidate>
       <label class="field" for="image-input">
         <span class="field__label">Property image</span>
-        <span class="field__hint">Drop a JPG or PNG — daylight elevation shots work best for context.</span>
+        <span class="field__hint">Supported formats: JPG, PNG. Clear daylight elevation shots work best.</span>
         <input ref="fileInput" type="file" id="image-input" accept="image/*" @change="handleImageChange" />
       </label>
       <div class="image-preview" id="image-preview" aria-live="polite">
@@ -65,7 +64,7 @@ const handleReset = () => {
           <img :src="imagePreview" alt="Selected property photograph" />
         </template>
         <span v-else class="image-preview__placeholder">
-          Drag a photo from your inspection or click to browse your files.
+          Your chosen image will be previewed here with subtle lighting.
         </span>
       </div>
 
@@ -79,10 +78,10 @@ const handleReset = () => {
           placeholder="Example: Cracking noted above the bay window at the front elevation."
         ></textarea>
       </label>
-
+      
       <div class="form-actions">
-        <button type="submit" class="btn-primary">Generate survey narrative</button>
-        <button type="button" class="btn-secondary" id="reset-button" @click="handleReset">Clear form</button>
+        <button type="submit" class="btn-primary">Generate RICS-style narrative</button>
+        <button type="button" class="btn-secondary" id="reset-button" @click="handleReset">Reset</button>
       </div>
     </form>
   </section>
