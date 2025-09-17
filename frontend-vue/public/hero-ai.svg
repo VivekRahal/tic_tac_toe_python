@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="620" viewBox="0 0 880 620" role="img" aria-label="AI generated UK home exterior">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e6f7f1"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0BB889"/>
+      <stop offset="100%" stop-color="#07a67d"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="rgba(2,6,23,0.18)"/>
+    </filter>
+  </defs>
+
+  <rect width="880" height="620" fill="url(#sky)"/>
+  <!-- House body -->
+  <g filter="url(#softShadow)">
+    <rect x="120" y="240" width="640" height="260" rx="18" fill="#f5f7fb" stroke="#d7dee7"/>
+    <path d="M120 260 L440 120 L760 260 Z" fill="#ecf2f1" stroke="#d7dee7"/>
+    <!-- Door and windows -->
+    <rect x="420" y="350" width="60" height="150" rx="6" fill="#ffffff" stroke="#cdd6df"/>
+    <rect x="200" y="320" width="120" height="90" rx="8" fill="#ffffff" stroke="#cdd6df"/>
+    <rect x="560" y="320" width="120" height="90" rx="8" fill="#ffffff" stroke="#cdd6df"/>
+    <rect x="344" y="320" width="90" height="90" rx="8" fill="#ffffff" stroke="#cdd6df"/>
+    <rect x="446" y="320" width="90" height="90" rx="8" fill="#ffffff" stroke="#cdd6df"/>
+  </g>
+
+  <!-- Highlight overlays to suggest AI detection (damp/crack regions) -->
+  <g opacity="0.9">
+    <rect x="188" y="414" width="144" height="26" rx="8" fill="url(#accent)" opacity="0.25"/>
+    <rect x="560" y="310" width="122" height="18" rx="8" fill="#f59e0b" opacity="0.25"/>
+    <path d="M470 240 C500 250, 520 230, 560 242" stroke="#ef4444" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  </g>
+
+  <!-- Foreground shrubs for realism cue -->
+  <g>
+    <ellipse cx="180" cy="520" rx="60" ry="18" fill="#e6f4ee"/>
+    <ellipse cx="700" cy="520" rx="60" ry="18" fill="#e6f4ee"/>
+    <circle cx="170" cy="500" r="24" fill="url(#accent)" opacity="0.3"/>
+    <circle cx="710" cy="500" r="24" fill="url(#accent)" opacity="0.3"/>
+  </g>
+
+  <!-- Caption -->
+  <text x="120" y="210" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#0B1F3B">Illustrative AI view</text>
+  <text x="120" y="236" font-family="Inter, Arial, sans-serif" font-size="16" fill="#334155">Example highlights are for demonstration only.</text>
+</svg>

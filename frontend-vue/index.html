@@ -4,13 +4,76 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UK House Survey Visual Advisor</title>
+    <title>HomeScan AI</title>
+    <meta name="description" content="Spot property defects in seconds with AI. Clean, trustworthy insights for UK buyers during viewings." />
+    <!-- Open Graph / Twitter -->
+    <meta property="og:site_name" content="HomeScan AI" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="HomeScan AI — Spot property defects in seconds" />
+    <meta property="og:description" content="Upload viewing photos and get instant, visual findings to guide your next steps." />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta property="og:image:alt" content="HomeScan AI preview" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HomeScan AI — Spot property defects in seconds" />
+    <meta name="twitter:description" content="Upload viewing photos and get instant, visual findings to guide your next steps." />
+    <meta name="twitter:image" content="/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <!-- Structured data: Organization and FAQ -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "HomeScan AI",
+        "url": "https://example.com/",
+        "logo": "/og-image.svg",
+        "sameAs": []
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Does this replace a professional survey?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. It helps you spot visible issues early. Always seek professional advice before making decisions."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What photos work best?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Well‑lit, in‑focus images taken straight on. Include close‑ups and a wider context if possible."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is my data private?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We process images securely and never sell personal data. You can delete uploads any time."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will it detect hidden problems?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "It only analyses what’s visible in the image. Hidden issues require further investigation."
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+.env
+.venv/
+venv/
+backend/.venv/
+backend/viv/
+
+# Logs
+*.log
+backend/uvicorn.dev.log
+vite.dev.log
+
+# Node/Vite/Vue
+frontend-vue/node_modules/
+frontend-vue/dist/
+frontend-vue/.vite/
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+

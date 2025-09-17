@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK RICS Residential Survey Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23e8f4f8;stop-opacity:1" /><stop offset="50%" style="stop-color:%23f7f9fc;stop-opacity:1" /><stop offset="100%" style="stop-color:%23e1f0f7;stop-opacity:1" /></linearGradient></defs><rect width="100%" height="100%" fill="url(%23bg1)"/><g opacity="0.1"><circle cx="100" cy="100" r="50" fill="%2374b9ff"/><circle cx="300" cy="200" r="30" fill="%2300cec9"/><circle cx="500" cy="150" r="40" fill="%2381ecec"/><circle cx="700" cy="300" r="35" fill="%23a29bfe"/><circle cx="900" cy="250" r="45" fill="%2374b9ff"/><circle cx="1100" cy="400" r="30" fill="%2300cec9"/><circle cx="200" cy="450" r="25" fill="%2381ecec"/><circle cx="400" cy="500" r="35" fill="%23a29bfe"/><circle cx="600" cy="600" r="40" fill="%2374b9ff"/><circle cx="800" cy="550" r="30" fill="%2300cec9"/><circle cx="1000" cy="700" r="25" fill="%2381ecec"/></g></svg>');
+            background-size: cover; background-attachment: fixed; min-height: 100vh; padding: 30px 20px; line-height: 1.7; color: #2c3e50;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        .particle { position: absolute; width: 4px; height: 4px; background: rgba(116, 185, 255, 0.3); border-radius: 50%; animation: float 20s infinite linear; }
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: -2s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: -4s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: -6s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: -8s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: -10s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: -12s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: -14s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: -16s; }
+        @keyframes float { 0%, 100% { transform: translateY(100vh) translateX(0px) rotate(0deg); opacity: 0; } 10%, 90% { opacity: 0.8; } 50% { transform: translateY(50vh) translateX(100px) rotate(180deg); opacity: 1; } }
+        .report-header { text-align: center; margin-bottom: 50px; position: relative; z-index: 2; }
+        .report-title { font-size: 2.8rem; font-weight: 300; margin-bottom: 15px; color: #34495e; letter-spacing: -1px; }
+        .report-subtitle { font-size: 1.1rem; color: #7f8c8d; margin-bottom: 25px; font-weight: 400; }
+        .rics-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 30px; padding: 8px 20px; color: #5d6d7e; font-size: 0.9rem; font-weight: 500; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08); margin-bottom: 18px; transition: all 0.3s ease; position: relative; z-index: 2; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent); transition: left 0.6s ease; }
+        .card:hover::before { left: 100%; }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15); border-color: rgba(116, 185, 255, 0.3); }
+        .executive-summary { padding: 24px; text-align: center; }
+        .summary-header { margin-bottom: 25px; }
+        .summary-icon { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; background: linear-gradient(135deg, #74b9ff, #0984e3); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: white; box-shadow: 0 10px 30px rgba(116, 185, 255, 0.3); }
+        .summary-title { font-size: 1.4rem; font-weight: 500; color: #2c3e50; margin-bottom: 10px; }
+        .summary-text { font-size: 0.95rem; color: #5d6d7e; max-width: 900px; margin: 0 auto 16px; line-height: 1.5; }
+        .risk-assessment { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px; background: rgba(255, 193, 7, 0.1); border-radius: 12px; border: 1px solid rgba(255, 193, 7, 0.2); }
+        .risk-indicator { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #fdcb6e, #f39c12); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: white; box-shadow: 0 6px 18px rgba(243, 156, 18, 0.25); position: relative; }
+        .risk-indicator::after { content: ''; position: absolute; width: 100px; height: 100px; border: 2px solid rgba(243, 156, 18, 0.3); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
+        .risk-info h3 { font-size: 1.2rem; font-weight: 500; color: #f39c12; margin-bottom: 5px; }
+        .risk-info p { color: #7f8c8d; font-size: 0.95rem; }
+        .content-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+        .content-card { padding: 18px; }
+        .card-header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .card-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
+        .findings-icon { background: linear-gradient(135deg, #ff7675, #e17055); }
+        .actions-icon { background: linear-gradient(135deg, #00cec9, #00b894); }
+        .card-title { font-size: 1.05rem; font-weight: 500; color: #2c3e50; }
+        .findings-list, .actions-list { list-style: none; padding: 0; }
+        .finding-item, .action-item { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; padding: 12px; background: rgba(255, 255, 255, 0.5); border-radius: 10px; border-left: 3px solid; transition: all 0.2s ease; }
+        .finding-item { border-left-color: #ff7675; }
+        .action-item { border-left-color: #00cec9; }
+        .finding-item:hover, .action-item:hover { background: rgba(255, 255, 255, 0.8); transform: translateX(5px); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1); }
+        .item-number { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; color: white; flex-shrink: 0; margin-top: 2px; }
+        .finding-item .item-number { background: linear-gradient(135deg, #ff7675, #e17055); }
+        .action-item .item-number { background: linear-gradient(135deg, #00cec9, #00b894); }
+        .item-text { font-size: 0.9rem; color: #5d6d7e; line-height: 1.45; }
+        .item-text strong { color: #2c3e50; font-weight: 500; }
+        .keywords-card { padding: 18px; text-align: center; }
+        .keywords-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }
+        .keyword-tag { background: rgba(255, 255, 255, 0.6); color: #2c3e50; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 800; border: 1px solid rgba(255, 255, 255, 0.8); transition: all 0.3s ease; backdrop-filter: blur(10px); }
+        .keyword-tag:hover { background: rgba(116, 185, 255, 0.2); color: #0984e3; border-color: rgba(116, 185, 255, 0.3); transform: translateY(-2px); }
+        .keyword-primary { background: rgba(116, 185, 255, 0.15); color: #0984e3; border-color: rgba(116, 185, 255, 0.3); }
+        .keyword-secondary { background: rgba(0, 206, 201, 0.15); color: #00b894; border-color: rgba(0, 206, 201, 0.3); }
+        .stats-card { padding: 18px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .stat-item { text-align: center; padding: 16px 10px; background: rgba(255, 255, 255, 0.4); border-radius: 12px; transition: all 0.2s ease; backdrop-filter: blur(10px); }
+        .stat-item:hover { background: rgba(255, 255, 255, 0.7); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
+        .stat-icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+        .stat-value { font-size: 1.8rem; font-weight: 300; color: #2c3e50; margin-bottom: 5px; }
+        .stat-label { font-size: 0.85rem; color: #7f8c8d; font-weight: 500; }
+        .next-steps { background: rgba(255, 255, 255, 0.9); padding: 18px; text-align: center; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.95); }
+        .next-steps-title { font-size: 1.6rem; font-weight: 300; color: #2c3e50; margin-bottom: 15px; }
+        .next-steps-text { font-size: 1rem; color: #7f8c8d; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .action-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .action-button { background: linear-gradient(135deg, #74b9ff, #0984e3); color: white; border: none; border-radius: 25px; padding: 12px 25px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 25px rgba(116, 185, 255, 0.3); backdrop-filter: blur(10px); }
+        .action-button:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(116, 185, 255, 0.4); }
+        .action-button.secondary { background: rgba(255, 255, 255, 0.8); color: #5d6d7e; border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
+        .action-button.secondary:hover { background: rgba(255, 255, 255, 0.95); color: #2c3e50; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px);} to { opacity: 1; transform: translateY(0);} }
+        .fade-in { animation: fadeInUp 0.8s ease-out; }
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            .report-title { font-size: 2.2rem; }
+            .content-grid { grid-template-columns: 1fr; gap: 12px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .risk-assessment { flex-direction: column; text-align: center; gap: 15px; }
+            .action-buttons { flex-direction: column; align-items: center; }
+            .card { margin-bottom: 12px; }
+            .content-card, .keywords-card, .stats-card { padding: 16px; }
+        }
+        @media print {
+            body { background: white; color: black; }
+            .card { background: white; border: 1px solid #ddd; box-shadow: none; }
+            .action-buttons, .particles { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles">
+        <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+        <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+        <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    </div>
+    <div class="container">
+        <script>
+            // Redirect legacy URL to the new dashboard design
+            try {
+              if (!/report-dashboard\.html$/i.test(location.pathname)) {
+                location.replace('/report-dashboard.html');
+              }
+            } catch {}
+        </script>
+        <div class="report-header fade-in">
+            <h1 class="report-title" id="hdr-title">UK RICS Residential Survey</h1>
+            <p class="report-subtitle">Professional Property Assessment & Analysis</p>
+            <div class="rics-badge"><span>🏛️</span><span>RICS Certified</span></div>
+        </div>
+        <!-- Uploaded image thumbnail (if available) -->
+        <div class="card fade-in" id="image-card" style="display:none;padding:12px;text-align:center;">
+            <img id="uploaded-image" alt="Uploaded property photo" style="max-width:100%;max-height:180px;height:auto;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);object-fit:contain" />
+        </div>
+        <div class="card executive-summary fade-in">
+            <div class="summary-header">
+                <div class="summary-icon">📋</div>
+                <h2 class="summary-title">Executive Summary</h2>
+            </div>
+            <p class="summary-text" id="summary-text"></p>
+            <div class="risk-assessment">
+                <div class="risk-indicator" id="risk-indicator">-</div>
+                <div class="risk-info">
+                    <h3 id="risk-label">Risk Level</h3>
+                    <p id="risk-desc">Automated assessment based on visible indicators.</p>
+                </div>
+            </div>
+        </div>
+        <div class="card stats-card fade-in">
+            <div class="card-header">
+                <div class="card-icon" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7);">📊</div>
+                <h3 class="card-title">Survey Overview</h3>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item"><span class="stat-icon">🔍</span><div class="stat-value" id="stat-findings">0</div><div class="stat-label">Key Findings</div></div>
+                <div class="stat-item"><span class="stat-icon">✅</span><div class="stat-value" id="stat-actions">0</div><div class="stat-label">Actions Required</div></div>
+                <div class="stat-item"><span class="stat-icon">⚠️</span><div class="stat-value" id="stat-risk">-</div><div class="stat-label">Risk Level</div></div>
+                <div class="stat-item"><span class="stat-icon">🏷️</span><div class="stat-value" id="stat-keywords">0</div><div class="stat-label">Keywords</div></div>
+            </div>
+        </div>
+        <div class="content-grid">
+            <div class="card content-card fade-in">
+                <div class="card-header"><div class="card-icon findings-icon">🔍</div><h3 class="card-title">Key Findings</h3></div>
+                <ul class="findings-list" id="findings-list"></ul>
+            </div>
+            <div class="card content-card fade-in">
+                <div class="card-header"><div class="card-icon actions-icon">✅</div><h3 class="card-title">Recommended Actions</h3></div>
+                <ul class="actions-list" id="actions-list"></ul>
+            </div>
+            <!-- Issues (moved here and renamed from Technical Keywords) -->
+            <div class="card content-card fade-in">
+                <div class="card-header"><div class="card-icon" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);">❗</div><h3 class="card-title">Issues</h3></div>
+                <div class="keywords-container" id="keywords-container"></div>
+            </div>
+        </div>
+        <!-- Dynamic auto sections for all keys -->
+        <div id="auto-grid" class="content-grid"></div>
+        <div class="card next-steps fade-in">
+            <h2 class="next-steps-title">Next Steps</h2>
+            <p class="next-steps-text" id="next-steps-text">Review recommended actions and engage qualified specialists as needed.</p>
+            <div class="action-buttons">
+                <button class="action-button" onclick="window.print()">Print</button>
+                <button class="action-button secondary" onclick="window.location.href='/'">Back to Quick Scan</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function parseMaybeJSON(text){ try{ return JSON.parse(text) }catch{ return null } }
+        // Try to extract a JSON object from a free‑form string (e.g., model output with prose)
+        function extractJSONFromText(text){
+          if (!text) return null
+          // Quick attempts: code fences
+          const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+          if (fenced) { const p = parseMaybeJSON(fenced[1]); if (p) return p }
+          // Find first balanced {...}
+          const start = text.indexOf('{')
+          const end = text.lastIndexOf('}')
+          if (start !== -1 && end !== -1 && end > start) {
+            const candidate = text.slice(start, end + 1)
+            const p = parseMaybeJSON(candidate)
+            if (p) return p
+          }
+          return null
+        }
+        function dedupeStrings(arr){
+          if (!Array.isArray(arr)) return []
+          const seen = new Set()
+          const out = []
+          for (const raw of arr) {
+            if (raw === undefined || raw === null) continue
+            const s = String(raw).trim().replace(/\s+/g,' ')
+            if (!s) continue
+            const key = s.replace(/[\s\.,;:!]+$/,'').toLowerCase()
+            if (!seen.has(key)) { seen.add(key); out.push(s) }
+          }
+          return out
+        }
+        function normalizeData(obj){
+          if (!obj || typeof obj !== 'object') return null
+          const out = {}
+          // Common fields with fallbacks/synonyms
+          out.title = (obj.title || obj.report_title || obj.heading || 'Analysis Report')?.toString().trim()
+          out.summary = (obj.summary || obj.overview || '')?.toString().trim()
+          out.findings = Array.isArray(obj.findings) ? obj.findings : (Array.isArray(obj.issues) ? obj.issues : [])
+          out.recommended_actions = Array.isArray(obj.recommended_actions) ? obj.recommended_actions : (Array.isArray(obj.actions) ? obj.actions : [])
+          out.risk_level = obj.risk_level || obj.risk || 'moderate'
+          out.keywords = Array.isArray(obj.keywords) ? obj.keywords : (Array.isArray(obj.tags) ? obj.tags : [])
+          // De-duplicate key arrays (case-insensitive, trimmed)
+          out.findings = dedupeStrings(out.findings)
+          out.recommended_actions = dedupeStrings(out.recommended_actions)
+          out.keywords = dedupeStrings(out.keywords)
+          // Preserve any extra keys
+          for (const [k,v] of Object.entries(obj)) { if (!(k in out)) out[k] = v }
+          return out
+        }
+        function getModelData(){
+          // Prefer raw JSON from llava if provided; try extraction if free‑form
+          const rawText = localStorage.getItem('hs_last_raw')
+          let rawObj = parseMaybeJSON(rawText) || extractJSONFromText(rawText)
+          if (!rawObj) {
+            const env = parseMaybeJSON(localStorage.getItem('hs_last_envelope'))
+            if (env && env.result) rawObj = env.result
+          }
+          const data = normalizeData(rawObj) || { title:'Analysis Report', summary:'', findings:[], recommended_actions:[], risk_level:'moderate', keywords:[] }
+          return data
+        }
+        function setRisk(level){
+          const risk = String(level||'-').toUpperCase();
+          const ind = document.getElementById('risk-indicator');
+          const lab = document.getElementById('risk-label');
+          ind.textContent = risk;
+          lab.textContent = `${risk} Risk Level`;
+          const lv = String(level||'').toLowerCase();
+          if(lv==='high'){ ind.style.background = 'linear-gradient(135deg, #ff7675, #e17055)' }
+          else if(lv==='low'){ ind.style.background = 'linear-gradient(135deg, #55efc4, #00b894)' }
+          else { ind.style.background = 'linear-gradient(135deg, #fdcb6e, #f39c12)' }
+        }
+        function fillList(id, items, type){
+          const ul = document.getElementById(id); ul.innerHTML='';
+          (items||[]).forEach((text, i)=>{
+            const li=document.createElement('li'); li.className= type==='action'? 'action-item':'finding-item';
+            li.innerHTML = `<div class="item-number">${i+1}</div><div class="item-text">${text}</div>`;
+            ul.appendChild(li)
+          })
+        }
+        function fillKeywords(tags){
+          const box=document.getElementById('keywords-container'); box.innerHTML='';
+          (tags||[]).forEach((t,i)=>{
+            const span=document.createElement('span'); span.className='keyword-tag ' + (i<2?'keyword-primary':i<4?'keyword-secondary':''); span.innerHTML = `<strong>${t}</strong>`; box.appendChild(span)
+          })
+        }
+        function hydrate(){
+          const data = getModelData();
+          document.getElementById('hdr-title').textContent = data.title || 'UK RICS Residential Survey';
+          document.getElementById('summary-text').textContent = data.summary || 'No summary provided.';
+          setRisk(data.risk_level);
+          document.getElementById('stat-findings').textContent = (data.findings||[]).length;
+          document.getElementById('stat-actions').textContent = (data.recommended_actions||[]).length;
+          document.getElementById('stat-risk').textContent = String(data.risk_level||'-').toUpperCase().slice(0,3);
+          document.getElementById('stat-keywords').textContent = (data.keywords||[]).length;
+          fillList('findings-list', data.findings, 'finding');
+          fillList('actions-list', data.recommended_actions, 'action');
+          fillKeywords(data.keywords);
+          // If essential sections are empty, insert placeholders to avoid empty cards
+          if (!(data.findings||[]).length) document.getElementById('findings-list').innerHTML = '<li class="finding-item"><div class="item-number">–</div><div class="item-text">No findings provided.</div></li>'
+          if (!(data.recommended_actions||[]).length) document.getElementById('actions-list').innerHTML = '<li class="action-item"><div class="item-number">–</div><div class="item-text">No actions provided.</div></li>'
+          // set uploaded image if available
+          let imgData = localStorage.getItem('hs_last_image');
+          // future support: multiple images in hs_images (JSON array of data URLs)
+          const imgs = (()=>{ try{ return JSON.parse(localStorage.getItem('hs_images')||'[]') }catch{ return [] } })()
+          if (!imgData && imgs.length) imgData = imgs[0]
+          const card = document.getElementById('image-card');
+          const img = document.getElementById('uploaded-image');
+          if (imgData) { img.src = imgData; card.style.display = 'block'; }
+          // Build dynamic sections for all keys
+          buildDynamicSections(data)
+        }
+        function toTitle(s){ return String(s).replace(/[_-]+/g,' ').replace(/\b\w/g, m=>m.toUpperCase()) }
+        function buildDynamicSections(data){
+          const grid = document.getElementById('auto-grid');
+          grid.innerHTML = '';
+          // Skip sections that already have dedicated cards
+          const exclude = new Set([
+            'title','report_title','heading',
+            'summary','overview',
+            'findings','issues',
+            'recommended_actions','actions',
+            'keywords','tags',
+            'risk_level','risk'
+          ])
+          Object.entries(data).forEach(([key,val])=>{
+            if (exclude.has(String(key))) return;
+            // Skip if empty
+            if (val === undefined || val === null) return;
+            const card = document.createElement('div'); card.className='card content-card fade-in';
+            const head = document.createElement('div'); head.className='card-header';
+            const icon = document.createElement('div'); icon.className='card-icon'; icon.style.background='linear-gradient(135deg, #74b9ff, #0984e3)'; icon.textContent='📌'; head.appendChild(icon);
+            const h = document.createElement('h3'); h.className='card-title'; h.textContent = toTitle(key); head.appendChild(h);
+            card.appendChild(head);
+            const body = document.createElement('div');
+            if (Array.isArray(val)){
+              const ul=document.createElement('ul'); ul.className= key.toLowerCase().includes('action')? 'actions-list':'findings-list';
+              if (val.length){
+                val.forEach((item, i)=>{
+                  const li=document.createElement('li'); li.className= key.toLowerCase().includes('action')? 'action-item':'finding-item';
+                  li.innerHTML = `<div class="item-number">${i+1}</div><div class="item-text">${typeof item==='string'? item : JSON.stringify(item)}</div>`;
+                  ul.appendChild(li)
+                })
+              } else {
+                const li=document.createElement('li'); li.className='finding-item'; li.innerHTML='<div class="item-number">–</div><div class="item-text">No data</div>';
+                ul.appendChild(li)
+              }
+              body.appendChild(ul)
+            } else if (typeof val === 'object'){
+              const wrap=document.createElement('div'); wrap.className='kv';
+              Object.entries(val).forEach(([k,v])=>{
+                const row=document.createElement('div'); row.className='kv-row';
+                row.innerHTML = `<strong>${toTitle(k)}: </strong><span>${typeof v==='string'? v : JSON.stringify(v)}</span>`;
+                wrap.appendChild(row)
+              })
+              body.appendChild(wrap)
+            } else {
+              const p=document.createElement('p'); p.className='item-text'; p.textContent=String(val); body.appendChild(p)
+            }
+            card.appendChild(body); grid.appendChild(card)
+          })
+        }
+        document.addEventListener('DOMContentLoaded', ()=>{
+          hydrate();
+          const observer = new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('fade-in') }) })
+          document.querySelectorAll('.card').forEach(el=>observer.observe(el))
+        })
+    </script>
+</body>
+</html>

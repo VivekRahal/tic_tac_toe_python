@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HomeScan AI — Survey Report</title>
+  <style>
+    :root {
+      --bg: #f6faf9;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #5b7287;
+      --brand: #0ea5a4;
+      --brand-ink: #0b6b6a;
+      --ring: rgba(14,165,164,.35);
+      --shadow: 0 8px 28px rgba(2, 6, 23, .08);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 1200px; margin: 28px auto; padding: 0 20px; }
+
+    /* Header */
+    .hdr { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 16px; margin-bottom: 22px; }
+    .brand { font-weight: 800; color: var(--brand-ink); letter-spacing: .01em; font-size: .95rem; }
+    .title { font-size: clamp(1.6rem, 2.6vw, 2.4rem); line-height: 1.15; font-weight: 800; margin: 2px 0 6px; }
+    .subtitle { color: var(--muted); font-size: 1rem; margin: 0; }
+    .risk-box { display: grid; gap: 10px; justify-items: end; }
+    .risk-label { font-weight: 600; color: var(--muted); }
+    .risk-pill { font-weight: 800; font-size: .95rem; letter-spacing: .04em; padding: 10px 14px; border-radius: 999px; background: #fdecc8; color: #8a5b00; border: 1px solid #f8dba5; }
+    .risk-pill.high { background:#ffd7d7; color:#8b1a1a; border-color:#ffb4b4 }
+    .risk-pill.low { background:#dff7ea; color:#0b6b3a; border-color:#bdeed3 }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid #eaf1f0; }
+    .card.pad { padding: 18px; }
+    .card h3 { margin: 0 0 10px; font-size: 1.05rem; letter-spacing: .01em; }
+    .muted { color: var(--muted); }
+    .divider { height: 1px; background: #eef3f2; margin: 10px 0; }
+
+    /* Summary */
+    .summary { font-size: .98rem; color: #1f2b38; line-height: 1.7; }
+
+    /* Small chart */
+    .mini-chart { height: 160px; display: grid; grid-template-rows: auto 1fr; gap: 8px; }
+    .bars { display: grid; grid-auto-flow: column; align-items: end; gap: 12px; padding: 0 8px 8px; }
+    .bar { width: 42px; background: #c8ebe8; border: 1px solid #a9e1dc; border-radius: 8px; box-shadow: inset 0 1px 0 #e9f6f4; }
+    .bar.alt { background: #b8d8f6; border-color: #9cc7f1; }
+    .bar > span { display:block; height: 30%; background: var(--brand); border-radius: 8px; }
+    .bar.alt > span { background: #4aa3ff; }
+    .xlabels { display: grid; grid-auto-flow: column; justify-items: center; gap: 12px; font-size: .8rem; color: var(--muted); }
+
+    /* Columns under summary */
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; padding: 12px; border: 1px solid #eef3f2; border-radius: 12px; }
+    .li .ic { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; font-size: .9rem; background: #eaf7f6; color: var(--brand-ink); }
+    .li p { margin: 0; color: #213140; font-size: .95rem; line-height: 1.55; }
+    .li p strong { font-weight: 700; }
+
+    /* Risk gauge */
+    .gauge { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 14px; }
+    .gauge svg { width: 120px; height: 80px; overflow: visible; }
+    .gauge .lbl { font-weight: 700; }
+    .gauge .lvl { font-size: .9rem; color: var(--muted); }
+
+    /* Issues tags */
+    .tags { display: flex; flex-wrap: wrap; gap: 10px; }
+    .tag { background:#eef6f6; border:1px solid #d6ecea; color:#12303a; padding:8px 14px; border-radius: 999px; font-weight: 800; font-size:.85rem }
+
+    /* Footer */
+    .foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: .85rem; color: var(--muted) }
+
+    /* Auto sections */
+    .auto-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 18px; }
+    .kv { display: grid; gap: 8px; }
+    .kv-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: start; font-size: .95rem; }
+    .kv-row strong { color: #213140; }
+
+    /* Image preview */
+    .img-card img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid #eaf1f0; }
+    .img-cap { font-size: .85rem; color: var(--muted); margin-top: 6px; text-align: center; }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .cols { grid-template-columns: 1fr; }
+      .auto-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hdr">
+      <div>
+        <div class="brand">HomeScan AI</div>
+        <h1 class="title" id="title">Residential Surveying Report</h1>
+        <p class="subtitle" id="subtitle">Visible Defects and Recommended Actions</p>
+      </div>
+      <div class="risk-box">
+        <div class="risk-label">Risk Level</div>
+        <div id="risk-pill" class="risk-pill">MODERATE</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Left: Summary + Findings/Actions -->
+      <div class="left">
+        <div class="card pad">
+          <h3>Summary</h3>
+          <div class="summary" id="summary">—</div>
+        </div>
+        <div class="cols">
+          <div class="card pad">
+            <h3>Findings</h3>
+            <ul id="findings" class="list"></ul>
+          </div>
+          <div class="card pad">
+            <h3>Recommended Actions</h3>
+            <ul id="actions" class="list"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Mini chart + Risk gauge + Issues -->
+      <div class="right">
+        <div class="card pad img-card" id="img-card" style="display:none">
+          <h3>Uploaded Photo</h3>
+          <img id="img-preview" alt="Uploaded property photo" />
+          <div class="img-cap" id="img-cap">Preview of the analyzed image</div>
+        </div>
+        <div class="card pad">
+          <div class="mini-chart">
+            <div class="muted">Number of Findings vs Recommended Actions</div>
+            <div class="bars">
+              <div class="bar"><span id="bar-findings"></span></div>
+              <div class="bar alt"><span id="bar-actions"></span></div>
+            </div>
+            <div class="xlabels"><div>Findings</div><div>Actions</div></div>
+          </div>
+        </div>
+        <div class="card pad" style="margin-top:18px">
+          <div class="gauge">
+            <svg viewBox="0 0 120 70" aria-hidden="true">
+              <defs>
+                <linearGradient id="gg" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#7cd3cf"/>
+                  <stop offset="60%" stop-color="#ffd166"/>
+                  <stop offset="100%" stop-color="#ef476f"/>
+                </linearGradient>
+              </defs>
+              <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="url(#gg)" stroke-width="14" stroke-linecap="round"/>
+              <g id="needle" transform="rotate(0,60,60)">
+                <line x1="60" y1="60" x2="60" y2="18" stroke="#0f172a" stroke-width="3" />
+                <circle cx="60" cy="60" r="4" fill="#0f172a" />
+              </g>
+            </svg>
+            <div>
+              <div class="lbl">Risk Level</div>
+              <div class="lvl" id="risk-level-text">Moderate</div>
+            </div>
+          </div>
+        </div>
+        <div class="card pad" style="margin-top:18px">
+          <h3>Issues</h3>
+          <div id="tags" class="tags"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div id="date">Date Generated: —</div>
+      <div>Visual, non-invasive</div>
+    </div>
+    <!-- Dynamic sections for any extra keys in the JSON -->
+    <div id="auto-sections" class="auto-grid"></div>
+  </div>
+
+  <script>
+    function parseMaybeJSON(text){ try { return JSON.parse(text) } catch { return null } }
+    function extractJSONFromText(text){
+      if (!text) return null
+      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+      if (fenced){ const p=parseMaybeJSON(fenced[1]); if(p) return p }
+      const s = text.indexOf('{'); const e = text.lastIndexOf('}')
+      if (s!==-1 && e!==-1 && e>s) { const cand = text.slice(s,e+1); const p=parseMaybeJSON(cand); if(p) return p }
+      return null
+    }
+    function dedupeStrings(arr){
+      if (!Array.isArray(arr)) return []
+      const seen = new Set(); const out=[]
+      for (const raw of arr){
+        if (raw==null) continue
+        const s = String(raw).trim().replace(/\s+/g,' ')
+        if (!s) continue
+        const key = s.replace(/[\s\.,;:!]+$/,'').toLowerCase()
+        if (!seen.has(key)){ seen.add(key); out.push(s) }
+      }
+      return out
+    }
+    function splitListString(s){
+      if (!s) return []
+      // Normalize common list formats: bullets, numbered lists, semicolons, newlines
+      let t = String(s).replace(/\r/g,'')
+      // Turn leading bullets/numbering into line breaks
+      t = t.replace(/^\s*[-*•]\s+/gm, '\n')
+           .replace(/^\s*\d+[\.)]\s+/gm, '\n')
+      let parts = t.split(/\n|;|•/).map(x=>x.trim()).filter(Boolean)
+      // If it still looks like a comma-separated short list, split by comma
+      if (parts.length <= 1 && /,/.test(t)) {
+        const commaParts = t.split(/,/).map(x=>x.trim()).filter(Boolean)
+        if (commaParts.length > 1 && commaParts.every(x => x.length <= 40)) parts = commaParts
+      }
+      return parts
+    }
+    function toStringArray(val){
+      if (Array.isArray(val)) return val.map(v=>String(v))
+      if (typeof val === 'string') return splitListString(val)
+      return []
+    }
+    function normalizeData(obj){
+      if (!obj || typeof obj !== 'object') return null
+      const out = {}
+      out.title = (obj.title || obj.report_title || obj.heading || 'Residential Surveying Report').toString().trim()
+      out.summary = (obj.summary || obj.overview || '').toString().trim()
+      out.findings = toStringArray(obj.findings); if (!out.findings.length) out.findings = toStringArray(obj.issues)
+      out.recommended_actions = toStringArray(obj.recommended_actions); if (!out.recommended_actions.length) out.recommended_actions = toStringArray(obj.actions)
+      out.risk_level = (obj.risk_level || obj.risk || 'moderate').toString().toLowerCase()
+      out.keywords = toStringArray(obj.keywords); if (!out.keywords.length) out.keywords = toStringArray(obj.tags)
+      out.findings = dedupeStrings(out.findings)
+      out.recommended_actions = dedupeStrings(out.recommended_actions)
+      out.keywords = dedupeStrings(out.keywords)
+      for (const [k,v] of Object.entries(obj)) { if (!(k in out)) out[k] = v }
+      return out
+    }
+    function getData(){
+      const params = new URLSearchParams(location.search || '')
+      // URL param override: ?data=<urlencoded JSON or base64 JSON>
+      if (params.has('data')) {
+        try {
+          const rawParam = params.get('data') || ''
+          let txt = decodeURIComponent(rawParam)
+          // if looks like base64
+          if (/^[A-Za-z0-9+/=]+$/.test(rawParam) && !/[{}\[\]"]/.test(rawParam)) {
+            try { txt = atob(rawParam) } catch {}
+          }
+          const fromParam = parseMaybeJSON(txt) || extractJSONFromText(txt)
+          if (fromParam) { window.__hs_source='param'; return normalizeData(fromParam) || fromParam }
+        } catch {}
+      }
+      if (params.get('sample') === '1') {
+        window.__hs_source='sample'
+        return normalizeData({
+          title: 'Residential Surveying Report: Visible Defects and Recommended Actions',
+          summary: 'The image shows a bedroom with an unkempt appearance, indicative of possible dampness or poor maintenance.',
+          findings: [ 'Damp patches on walls.', 'Mould growth visible in one corner.' ],
+          recommended_actions: [ 'Investigate dampness source.', 'Improve ventilation.' ],
+          risk_level: 'moderate',
+          keywords: [ 'dampness','ventilation' ]
+        })
+      }
+      const raw = localStorage.getItem('hs_last_raw')
+      let obj = parseMaybeJSON(raw) || extractJSONFromText(raw)
+      if (obj) { window.__hs_source='hs_last_raw' }
+      if (!obj){
+        const env = parseMaybeJSON(localStorage.getItem('hs_last_envelope'))
+        if (env) {
+          // Common envelope shapes from the backend
+          if (!obj && typeof env.raw === 'string') obj = parseMaybeJSON(env.raw) || extractJSONFromText(env.raw)
+          if (!obj && Array.isArray(env.raws) && env.raws.length) {
+            const r0 = env.raws[0]
+            obj = parseMaybeJSON(r0) || extractJSONFromText(r0)
+          }
+          if (!obj && env.result) obj = env.result
+          if (obj) window.__hs_source='hs_last_envelope'
+        }
+        if (!obj) {
+          // Sometimes we store an already-parsed object here
+          const stored = localStorage.getItem('hs_last_result')
+          obj = parseMaybeJSON(stored) || extractJSONFromText(stored)
+          if (obj) window.__hs_source='hs_last_result'
+        }
+        if (!obj) {
+          // Older flows: try hs_last_raws[0]
+          const raws = parseMaybeJSON(localStorage.getItem('hs_last_raws'))
+          if (Array.isArray(raws) && raws[0]) { obj = parseMaybeJSON(raws[0]) || extractJSONFromText(raws[0]); if (obj) window.__hs_source='hs_last_raws[0]' }
+        }
+      }
+      if (!obj) window.__hs_source='builtin'
+      obj = obj || {
+        title: 'Residential Surveying Report: Visible Defects and Recommended Actions',
+        summary: 'The image shows a bedroom with an unkempt appearance, indicative of possible dampness or poor maintenance.',
+        findings: [ 'Damp patches on walls, suggesting potential moisture ingress from outside.', 'Mould growth visible in one corner, indicating a need for thorough cleaning and possibly remedial work.' ],
+        recommended_actions: [ 'Investigate the source of dampness through visual inspections and possibly intrusive investigations.', 'Ensure adequate ventilation is present in the property.' ],
+        risk_level: 'moderate',
+        keywords: [ 'moderate','maintenance','ventilation' ]
+      }
+      return normalizeData(obj) || obj
+    }
+
+    function setRisk(level){
+      const pill = document.getElementById('risk-pill')
+      const txt = String(level||'moderate').toUpperCase()
+      pill.textContent = txt
+      pill.classList.remove('low','high')
+      if (level==='high') pill.classList.add('high')
+      else if (level==='low') pill.classList.add('low')
+      // needle angle: low= -60deg, moderate=0, high=+60deg
+      const angle = level==='high' ? 60 : level==='low' ? -60 : 0
+      document.getElementById('needle').setAttribute('transform', `rotate(${angle},60,60)`)
+      document.getElementById('risk-level-text').textContent = txt.charAt(0) + txt.slice(1).toLowerCase()
+    }
+
+    function fillList(el, items){
+      el.innerHTML = ''
+      (items||[]).forEach((t,i)=>{
+        const li = document.createElement('li'); li.className='li'
+        const ic = document.createElement('div'); ic.className='ic'; ic.textContent = i+1
+        const p = document.createElement('p');
+        const bold = (t||'').split(' ').slice(0,3).join(' ')
+        p.innerHTML = `<strong>${bold}:</strong> ${t}`
+        li.appendChild(ic); li.appendChild(p); el.appendChild(li)
+      })
+      if (!(items||[]).length){ const li=document.createElement('li'); li.className='li'; li.innerHTML='<div class="ic">–</div><p>No items provided.</p>'; el.appendChild(li) }
+    }
+
+    function bars(findingsCount, actionsCount){
+      const f = Math.max(0, findingsCount||0), a = Math.max(0, actionsCount||0)
+      const max = Math.max(1, f, a)
+      document.getElementById('bar-findings').style.height = Math.round((f/max)*100) + '%'
+      document.getElementById('bar-actions').style.height = Math.round((a/max)*100) + '%'
+    }
+
+    function tags(el, items){
+      el.innerHTML = ''
+      (items||[]).forEach(t=>{
+        const s=document.createElement('span'); s.className='tag'; s.innerHTML = `<strong>${t}</strong>`; el.appendChild(s)
+      })
+      if (!(items||[]).length){ const s=document.createElement('span'); s.className='tag'; s.textContent='None'; el.appendChild(s) }
+    }
+
+    function hydrate(){
+      const data = getData()
+      document.getElementById('title').textContent = data.title || 'Residential Surveying Report'
+      document.getElementById('summary').textContent = data.summary || 'No summary provided.'
+      setRisk(String(data.risk_level||'moderate').toLowerCase())
+      fillList(document.getElementById('findings'), data.findings)
+      fillList(document.getElementById('actions'), data.recommended_actions)
+      bars((data.findings||[]).length, (data.recommended_actions||[]).length)
+      tags(document.getElementById('tags'), data.keywords)
+      // Image preview from localStorage
+      const imgCard = document.getElementById('img-card')
+      const img = document.getElementById('img-preview')
+      let imgData = null
+      try { imgData = localStorage.getItem('hs_last_image') } catch {}
+      if (!imgData) {
+        try {
+          const imgs = JSON.parse(localStorage.getItem('hs_images') || '[]')
+          if (Array.isArray(imgs) && imgs.length) imgData = imgs[0]
+        } catch {}
+      }
+      if (imgData) { img.src = imgData; imgCard.style.display = 'block' } else { imgCard.style.display = 'none' }
+      renderExtraSections(data)
+      const now = new Date()
+      const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '')
+      document.getElementById('date').textContent = 'Generated: ' + now.toLocaleString() + (tz ? ' ' + tz : '')
+      // Optional debug banner if requested
+      const params = new URLSearchParams(location.search||'')
+      if (params.get('debug') === '1') {
+        const b = document.createElement('div'); b.style.cssText='position:fixed;bottom:12px;left:12px;background:#0f172a;color:#fff;padding:6px 10px;border-radius:8px;font-size:.8rem;opacity:.9;z-index:9999'
+        b.textContent = 'Data source: ' + (window.__hs_source||'unknown')
+        document.body.appendChild(b)
+      }
+    }
+
+    function titleize(s){ return String(s||'').replace(/[_-]+/g,' ').replace(/\b\w/g, m=>m.toUpperCase()) }
+    function renderExtraSections(data){
+      const grid = document.getElementById('auto-sections');
+      if (!grid) return; grid.innerHTML = ''
+      const exclude = new Set([
+        'title','report_title','heading',
+        'summary','overview',
+        'findings','issues',
+        'recommended_actions','actions',
+        'keywords','tags',
+        'risk_level','risk'
+      ])
+      Object.entries(data || {}).forEach(([key, val]) => {
+        if (exclude.has(String(key))) return; if (val === undefined || val === null) return
+        const card = document.createElement('div'); card.className = 'card pad'
+        const h3 = document.createElement('h3'); h3.textContent = titleize(key); card.appendChild(h3)
+        const body = document.createElement('div')
+        if (Array.isArray(val)) {
+          const ul = document.createElement('ul'); ul.className = 'list'
+          if (val.length) {
+            val.forEach((item, i) => {
+              const li = document.createElement('li'); li.className = 'li'
+              const ic = document.createElement('div'); ic.className = 'ic'; ic.textContent = i+1
+              const p = document.createElement('p'); p.textContent = typeof item === 'string' ? item : JSON.stringify(item)
+              li.appendChild(ic); li.appendChild(p); ul.appendChild(li)
+            })
+          } else {
+            const li = document.createElement('li'); li.className='li'; li.innerHTML='<div class="ic">–</div><p>No data</p>'
+            ul.appendChild(li)
+          }
+          body.appendChild(ul)
+        } else if (typeof val === 'object') {
+          const wrap = document.createElement('div'); wrap.className = 'kv'
+          const entries = Object.entries(val)
+          if (!entries.length) {
+            const p = document.createElement('p'); p.textContent = 'No data'; wrap.appendChild(p)
+          } else {
+            entries.forEach(([k,v]) => {
+              const row = document.createElement('div'); row.className = 'kv-row'
+              const keyEl = document.createElement('strong'); keyEl.textContent = titleize(k)
+              const valEl = document.createElement('span'); valEl.textContent = typeof v === 'string' ? v : JSON.stringify(v)
+              row.appendChild(keyEl); row.appendChild(valEl); wrap.appendChild(row)
+            })
+          }
+          body.appendChild(wrap)
+        } else {
+          const p = document.createElement('p'); p.textContent = String(val)
+          body.appendChild(p)
+        }
+        card.appendChild(body); grid.appendChild(card)
+      })
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      try { hydrate() } catch (e) {
+        // Last-resort fallback: render sample to avoid a blank page
+        console.error && console.error('hydrate failed', e)
+        const sample = normalizeData({
+          title: 'Residential Surveying Report: Visible Defects and Recommended Actions',
+          summary: 'The image shows a bedroom with an unkempt appearance, indicative of possible dampness or poor maintenance.',
+          findings: [ 'Damp patches on walls.', 'Mould growth visible in one corner.' ],
+          recommended_actions: [ 'Investigate dampness source.', 'Improve ventilation.' ],
+          risk_level: 'moderate',
+          keywords: [ 'dampness','ventilation' ]
+        })
+        document.getElementById('title').textContent = sample.title
+        document.getElementById('summary').textContent = sample.summary
+        setRisk(sample.risk_level)
+        fillList(document.getElementById('findings'), sample.findings)
+        fillList(document.getElementById('actions'), sample.recommended_actions)
+        bars(sample.findings.length, sample.recommended_actions.length)
+        tags(document.getElementById('tags'), sample.keywords)
+        const now = new Date();
+        document.getElementById('date').textContent = 'Generated: ' + now.toLocaleString()
+      }
+    })
+  </script>
+</body>
+</html>
