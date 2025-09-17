@@ -17,6 +17,27 @@ backend/viv/
 backend/uvicorn.dev.log
 vite.dev.log
 
+# Env files
+.env.local
+.env.*.local
+frontend-vue/.env
+frontend-vue/.env.local
+
+# Caches/coverage
+.mypy_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+.nyc_output/
+
+# Vite/Vue caches
+frontend-vue/.vite/
+frontend-vue/.cache/
+frontend-vue/.eslintcache
+frontend-vue/dist-ssr/
+
 # Node/Vite/Vue
 frontend-vue/node_modules/
 frontend-vue/dist/
@@ -26,4 +47,3 @@ frontend-vue/.vite/
 .DS_Store
 .idea/
 .vscode/
-
