@@ -12,7 +12,7 @@
 </template>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 1rem 1rem 2.25rem; }
+.container { max-width: 100%; width: 100%; margin: 0; padding: 1rem 0 2.25rem; }
 .section-title { margin: 0 0 1rem; font-size: 1.6rem; color: #0B1F3B; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
 .step { grid-column: span 4; display: grid; grid-template-columns: auto 1fr; align-items: start; gap: .75rem; background: rgba(255,255,255,0.82); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.65); border-radius: 16px; padding: 1rem; }

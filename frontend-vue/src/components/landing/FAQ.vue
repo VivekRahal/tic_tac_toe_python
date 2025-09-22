@@ -25,7 +25,7 @@
 </template>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 1rem 1rem 2.25rem; }
+.container { max-width: 100%; width: 100%; margin: 0; padding: 1rem 0 2.25rem; }
 .section-title { margin: 0 0 1rem; font-size: 1.6rem; color: #0B1F3B; }
 .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
 .item { grid-column: span 6; background: #fff; border: 1px solid rgba(15,23,42,.08); border-radius: 12px; padding: .9rem 1rem; }
@@ -33,4 +33,3 @@
 .item p { margin: .6rem 0 0; color: #334155; }
 @media (max-width: 960px) { .item { grid-column: span 12; } }
 </style>
-

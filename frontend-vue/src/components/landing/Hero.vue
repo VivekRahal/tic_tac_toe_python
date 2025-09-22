@@ -38,7 +38,7 @@ const onHeroError = () => {
 </template>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1rem; }
+.container { max-width: 100%; width: 100%; margin: 0; padding: 2.5rem 0; }
 .hero__grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; align-items: center; justify-items: center; min-height: auto; }
 .hero__copy { grid-column: 1 / -1; max-width: 720px; margin: 0 auto; text-align: center; }
 

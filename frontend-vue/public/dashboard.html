@@ -99,6 +99,7 @@
             .card { background: white; border: 1px solid #ddd; box-shadow: none; }
             .action-buttons, .particles { display: none; }
         }
+        .user-chip { position: fixed; right: 20px; top: 20px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(2,6,23,.1); background: rgba(255,255,255,.8); backdrop-filter: blur(10px); color: #0B1F3B; font-weight: 800; z-index: 5; }
     </style>
 </head>
 <body>
@@ -108,14 +109,7 @@
         <div class="particle"></div><div class="particle"></div><div class="particle"></div>
     </div>
     <div class="container">
-        <script>
-            // Redirect legacy URL to the new dashboard design
-            try {
-              if (!/report-dashboard\.html$/i.test(location.pathname)) {
-                location.replace('/report-dashboard.html');
-              }
-            } catch {}
-        </script>
+        <div id="user-chip" class="user-chip" style="display:none;">User</div>
         <div class="report-header fade-in">
             <h1 class="report-title" id="hdr-title">UK RICS Residential Survey</h1>
             <p class="report-subtitle">Professional Property Assessment & Analysis</p>
@@ -168,12 +162,17 @@
         </div>
         <!-- Dynamic auto sections for all keys -->
         <div id="auto-grid" class="content-grid"></div>
+        <!-- Raw JSON response (for completeness) -->
+        <div class="card content-card fade-in">
+            <div class="card-header"><div class="card-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">{ }</div><h3 class="card-title">Raw Response</h3></div>
+            <pre id="raw-json" style="white-space: pre-wrap; word-break: break-word; background:#0f172a; color:#e2e8f0; padding:12px; border-radius: 10px; font-size: .9rem; overflow:auto;"></pre>
+        </div>
         <div class="card next-steps fade-in">
             <h2 class="next-steps-title">Next Steps</h2>
             <p class="next-steps-text" id="next-steps-text">Review recommended actions and engage qualified specialists as needed.</p>
             <div class="action-buttons">
                 <button class="action-button" onclick="window.print()">Print</button>
-                <button class="action-button secondary" onclick="window.location.href='/'">Back to Quick Scan</button>
+                <button class="action-button secondary" onclick="window.location.href='/scan'">Back to Quick Scan</button>
             </div>
         </div>
     </div>
@@ -226,8 +225,7 @@
           for (const [k,v] of Object.entries(obj)) { if (!(k in out)) out[k] = v }
           return out
         }
-        function getModelData(){
-          // Prefer raw JSON from llava if provided; try extraction if free‑form
+        function getModelDataFromLocal(){
           const rawText = localStorage.getItem('hs_last_raw')
           let rawObj = parseMaybeJSON(rawText) || extractJSONFromText(rawText)
           if (!rawObj) {
@@ -235,7 +233,35 @@
             if (env && env.result) rawObj = env.result
           }
           const data = normalizeData(rawObj) || { title:'Analysis Report', summary:'', findings:[], recommended_actions:[], risk_level:'moderate', keywords:[] }
-          return data
+          return { data, images: (()=>{ try{ return JSON.parse(localStorage.getItem('hs_images')||'[]') }catch{ return [] } })(), question_id: null, created_at: null }
+        }
+        async function getLatestScanFromApi(){
+          const token = localStorage.getItem('hs_token')
+          if (!token) throw new Error('Not authenticated')
+          const url = new URL(window.location.href)
+          const id = url.searchParams.get('id')
+          const headers = { 'Authorization': `Bearer ${token}` }
+          if (id){
+            const r = await fetch('http://127.0.0.1:8000/api/scans/' + encodeURIComponent(id), { headers })
+            const j = await r.json(); if (!r.ok || !j?.ok) throw new Error(j?.error || 'Failed to load scan')
+            return j.scan
+          }
+          const res = await fetch('http://127.0.0.1:8000/api/scans', { headers })
+          const json = await res.json(); if (!res.ok || !json?.ok) throw new Error(json?.error || 'Failed to list scans')
+          if (!json.items?.length) throw new Error('No scans available')
+          const latestId = json.items[0].id
+          const r2 = await fetch('http://127.0.0.1:8000/api/scans/' + encodeURIComponent(latestId), { headers })
+          const j2 = await r2.json(); if (!r2.ok || !j2?.ok) throw new Error(j2?.error || 'Failed to load scan')
+          return j2.scan
+        }
+        function modelDataFromScan(scan){
+          // Extract first response JSON if present
+          const results = Array.isArray(scan?.results) ? scan.results : []
+          let text = results[0]?.response || ''
+          let rawObj = parseMaybeJSON(text) || extractJSONFromText(text)
+          const data = normalizeData(rawObj) || { title:'Analysis Report', summary:'', findings:[], recommended_actions:[], risk_level:'moderate', keywords:[] }
+          const images = results.map(r => r.image_b64 ? `data:image/*;base64,${r.image_b64}` : null).filter(Boolean)
+          return { data, images, question_id: scan?.question_id || null, created_at: scan?.created_at || null, model: scan?.model || null, rawText: text }
         }
         function setRisk(level){
           const risk = String(level||'-').toUpperCase();
@@ -262,10 +288,14 @@
             const span=document.createElement('span'); span.className='keyword-tag ' + (i<2?'keyword-primary':i<4?'keyword-secondary':''); span.innerHTML = `<strong>${t}</strong>`; box.appendChild(span)
           })
         }
-        function hydrate(){
-          const data = getModelData();
+        function hydrateBundle(bundle){
+          const { data, images, question_id, created_at, rawText } = bundle
           document.getElementById('hdr-title').textContent = data.title || 'UK RICS Residential Survey';
-          document.getElementById('summary-text').textContent = data.summary || 'No summary provided.';
+          const sub = []
+          if (question_id) sub.push('Question: ' + question_id)
+          if (created_at) sub.push(new Date(created_at).toLocaleString())
+          if (typeof model !== 'undefined' && model) sub.push('Model: ' + model)
+          document.getElementById('summary-text').textContent = (data.summary || 'No summary provided.') + (sub.length ? (' \n' + sub.join(' • ')) : '');
           setRisk(data.risk_level);
           document.getElementById('stat-findings').textContent = (data.findings||[]).length;
           document.getElementById('stat-actions').textContent = (data.recommended_actions||[]).length;
@@ -277,16 +307,15 @@
           // If essential sections are empty, insert placeholders to avoid empty cards
           if (!(data.findings||[]).length) document.getElementById('findings-list').innerHTML = '<li class="finding-item"><div class="item-number">–</div><div class="item-text">No findings provided.</div></li>'
           if (!(data.recommended_actions||[]).length) document.getElementById('actions-list').innerHTML = '<li class="action-item"><div class="item-number">–</div><div class="item-text">No actions provided.</div></li>'
-          // set uploaded image if available
-          let imgData = localStorage.getItem('hs_last_image');
-          // future support: multiple images in hs_images (JSON array of data URLs)
-          const imgs = (()=>{ try{ return JSON.parse(localStorage.getItem('hs_images')||'[]') }catch{ return [] } })()
-          if (!imgData && imgs.length) imgData = imgs[0]
+          // set image(s)
+          let imgData = (images && images.length) ? images[0] : localStorage.getItem('hs_last_image');
           const card = document.getElementById('image-card');
           const img = document.getElementById('uploaded-image');
           if (imgData) { img.src = imgData; card.style.display = 'block'; }
           // Build dynamic sections for all keys
           buildDynamicSections(data)
+          // Raw JSON pane
+          document.getElementById('raw-json').textContent = rawText || JSON.stringify(data, null, 2)
         }
         function toTitle(s){ return String(s).replace(/[_-]+/g,' ').replace(/\b\w/g, m=>m.toUpperCase()) }
         function buildDynamicSections(data){
@@ -338,8 +367,15 @@
             card.appendChild(body); grid.appendChild(card)
           })
         }
-        document.addEventListener('DOMContentLoaded', ()=>{
-          hydrate();
+        document.addEventListener('DOMContentLoaded', async ()=>{
+          try {
+            const scan = await getLatestScanFromApi()
+            hydrateBundle(modelDataFromScan(scan))
+          } catch (e) {
+            // Fallback to local storage if API not available
+            hydrateBundle(getModelDataFromLocal())
+          }
+          try { const u = JSON.parse(localStorage.getItem('hs_user')||'null'); if (u && (u.name||u.email)) { const chip = document.getElementById('user-chip'); chip.textContent = u.name || u.email; chip.style.display='inline-block' } } catch {}
           const observer = new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('fade-in') }) })
           document.querySelectorAll('.card').forEach(el=>observer.observe(el))
         })

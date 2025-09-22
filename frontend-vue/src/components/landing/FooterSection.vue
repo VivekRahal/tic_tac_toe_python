@@ -25,7 +25,7 @@
 </template>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+.container { max-width: 100%; width: 100%; margin: 0; padding: 2rem 0; }
 .cols { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
 .col { grid-column: span 4; }
 .brand { margin: 0 0 .4rem; color: #0B1F3B; }
@@ -38,4 +38,3 @@ h4 { margin: 0 0 .4rem; color: #0B1F3B; }
 .legal { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(15,23,42,.06); color: #64748b; font-size: .9rem; }
 @media (max-width: 960px) { .col { grid-column: span 6; } .small-print { grid-column: span 12; } }
 </style>
-
