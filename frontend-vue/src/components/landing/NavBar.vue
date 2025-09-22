@@ -77,8 +77,8 @@ const userInitial = computed(() => {
 </template>
 
 <style scoped>
-.nav { position: sticky; top: 0; background: #ffffff; border-bottom: 1px solid rgba(15,23,42,0.06); z-index: 20; }
-.container { max-width: 1100px; margin: 0 auto; padding: .9rem 1rem; display: flex; align-items: center; justify-content: space-between; }
+.nav { position: fixed; top: 0; left: 0; right: 0; background: #ffffff; border-bottom: 1px solid rgba(15,23,42,0.06); z-index: 20; }
+.container { max-width: 100%; width: 100%; margin: 0; padding: .9rem var(--page-gutter); display: flex; align-items: center; justify-content: space-between; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; color: #0B1F3B; font-weight: 800; text-decoration: none; letter-spacing: .01em; }
 .brand__logo { width: 20px; height: 20px; display: inline-grid; place-items: center; background: #0BB889; color: white; border-radius: 4px; font-size: .8rem; }
 .nav__links { display: inline-flex; align-items: center; gap: 1rem; }

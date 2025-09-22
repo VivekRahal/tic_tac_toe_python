@@ -12,6 +12,10 @@ from fastapi.responses import JSONResponse
 from db import mongodb
 from auth import router as auth_router, parse_authorization
 from bson import ObjectId
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:
+    load_dotenv = None  # type: ignore
 
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
@@ -32,6 +36,12 @@ QUESTIONS: Dict[str, str] = {
     ),
 }
 
+
+if load_dotenv:
+    try:
+        load_dotenv()
+    except Exception:
+        pass
 
 app = FastAPI(title="HomeScan AI Backend")
 

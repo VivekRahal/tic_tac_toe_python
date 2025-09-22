@@ -78,8 +78,17 @@ const syncHeights = () => {
 }
 
 const onResize = () => syncHeights()
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('resize', onResize)
+  // Load available analysis questions
+  try {
+    const r = await fetch('http://127.0.0.1:8000/api/questions')
+    const j = await r.json()
+    if (j && Array.isArray(j.items)) {
+      questionItems.value = j.items
+      if (j.default) selectedQuestionId.value = j.default
+    }
+  } catch {}
 })
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize)
@@ -135,6 +144,10 @@ const openSurveys = async () => {
   if (target && !surveys.value.length && !surveysLoading.value) await fetchSurveys()
 }
 
+// Questions (prompts) selector
+const questionItems = ref([])
+const selectedQuestionId = ref('rics_analyze')
+
 const onClick = () => {
   const token = localStorage.getItem('hs_token')
   if (!token) { window.location.href = '/login'; return }
@@ -155,7 +168,7 @@ const submit = async () => {
   try {
     const fd = new FormData()
     for (const f of files.value) fd.append('files', f)
-    fd.append('question_id', 'rics_analyze')
+    fd.append('question_id', selectedQuestionId.value || 'rics_analyze')
     const headers = {}
     if (token) headers['Authorization'] = `Bearer ${token}`
     const res = await fetch('http://127.0.0.1:8000/api/scan', { method: 'POST', body: fd, headers })
@@ -210,6 +223,12 @@ const submit = async () => {
     <div class="container">
       <div class="center">
         <h2 id="qs-title" class="sr-only">Quick Scan</h2>
+        <div class="question">
+          <label for="qs-question">Question</label>
+          <select id="qs-question" v-model="selectedQuestionId">
+            <option v-for="q in questionItems" :key="q.id" :value="q.id" :title="q.prompt">{{ q.id }}</option>
+          </select>
+        </div>
         <input id="qs-input" ref="fileInput" class="hidden-input" type="file" accept="image/*" capture="environment" multiple @change="onChange" />
         <div
           class="circle"
@@ -225,8 +244,19 @@ const submit = async () => {
           <div v-if="dragOver" class="circle__overlay" aria-hidden="true">Drop</div>
         </div>
         <div class="file-meta" v-if="files.length && !submitting">{{ files.length }} file(s) selected</div>
-        <button v-if="files.length" class="submit submit--blue" type="button" :disabled="submitting" @click="submit">Analyze Now</button>
-        <div v-if="submitting" class="loading"><div class="spinner" aria-hidden="true"></div><span>Analyzing {{ files.length }} image(s)…</span></div>
+        <button
+          v-if="files.length"
+          class="fx-btn"
+          :class="{ 'is-running': submitting }"
+          type="button"
+          :disabled="submitting"
+          @click="submit"
+        >
+          <span class="fx-btn__glow" aria-hidden="true"></span>
+          <span class="fx-btn__ring" aria-hidden="true"></span>
+          <span class="fx-btn__label">{{ submitting ? 'Analyzing…' : 'Analyze Now' }}</span>
+        </button>
+        <div v-if="submitting" class="loading-alt" aria-live="polite">Analyzing {{ files.length }} image(s)…</div>
       </div>
     </div>
   </section>
@@ -279,7 +309,7 @@ const submit = async () => {
 </template>
 
 <style scoped>
-.container { max-width: 1100px; margin: 0 auto; padding: 0 1rem 1.8rem; }
+.container { max-width: 100%; width: 100%; margin: 0; padding: 0 0 1.8rem; }
 .center { display: grid; place-items: center; }
 .hidden-input { position: absolute; left: -9999px; }
 .circle { position: relative; width: 280px; height: 280px; border-radius: 9999px; background: linear-gradient(180deg, #f7fbff 0%, #eff6ff 100%); border: 2px dashed rgba(15,23,42,.15); display: grid; place-items: center; cursor: pointer; box-shadow: 0 12px 30px rgba(2,6,23,.08); transition: transform .2s ease, box-shadow .2s ease; }
@@ -288,17 +318,27 @@ const submit = async () => {
 .circle__text { font-weight: 900; color: #0B1F3B; letter-spacing: .02em; }
 .circle__overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(237, 246, 255, .92); color: #0B1F3B; border-radius: 9999px; border: 2px dashed rgba(15,23,42,.25); font-weight: 800; }
 .file-meta { margin-top: .4rem; color: #334155; font-size: .9rem; }
-.submit { margin-top: .8rem; padding: .75rem 1.2rem; border-radius: 999px; font-weight: 800; border: none; cursor: pointer; transition: background .2s ease, transform .06s ease; }
-.submit--blue { background: #2563eb; color: #fff; box-shadow: 0 8px 20px rgba(37,99,235,.25); }
-.submit--blue:hover { background: #1d4ed8; }
-.submit:active { transform: translateY(1px); }
-.submit:disabled { opacity: .6; cursor: not-allowed; }
-.loading { margin-top: .8rem; display: inline-flex; gap: .6rem; align-items: center; color: #0B1F3B; font-weight: 800; }
-.spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(11,31,59,.2); border-top-color: #0B1F3B; animation: spin .8s linear infinite; }
+/* Futuristic Analyze button */
+.fx-btn { position: relative; margin-top: .8rem; padding: .9rem 1.4rem; border-radius: 14px; border: 0; color: #fff; font-weight: 900; letter-spacing: .02em; cursor: pointer; overflow: hidden; background: radial-gradient(120% 120% at 20% 20%, #3b82f6 0%, #1d4ed8 45%, #0b1f3b 100%); box-shadow: 0 12px 30px rgba(29,78,216,.35), inset 0 0 0 1px rgba(255,255,255,.08); transition: transform .08s ease, box-shadow .2s ease, filter .2s ease; }
+.fx-btn:hover { box-shadow: 0 14px 36px rgba(29,78,216,.42), inset 0 0 0 1px rgba(255,255,255,.12); filter: saturate(1.08); }
+.fx-btn:active { transform: translateY(1px); }
+.fx-btn:disabled { cursor: not-allowed; opacity: .9; }
+.fx-btn__label { position: relative; z-index: 2; }
+.fx-btn__glow { position: absolute; inset: -40%; background: conic-gradient(from 0deg, rgba(59,130,246,.0), rgba(59,130,246,.65), rgba(14,165,233,.0)); filter: blur(22px); transform: rotate(0deg); animation: hue 6s linear infinite; opacity: .7; }
+.fx-btn__ring { position: absolute; inset: 2px; border-radius: 12px; background: conic-gradient(from 0deg, transparent 0 40%, rgba(255,255,255,.25) 50%, transparent 60% 100%); mask: radial-gradient(circle at center, transparent 54%, black 55%); opacity: 0; }
+.fx-btn.is-running .fx-btn__ring { opacity: 1; animation: spin 1s linear infinite; }
+@keyframes hue { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+.loading-alt { margin-top: .4rem; color: #0B1F3B; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) {
+  .fx-btn__glow, .fx-btn__ring { animation: none; }
+}
 @keyframes spin { to { transform: rotate(360deg) } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 /* Result layout */
+.question { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .6rem; margin-bottom: .7rem; }
+.question label { font-weight: 800; color: #0B1F3B; }
+.question select { padding: .45rem .6rem; border: 1px solid #cbd5e1; border-radius: 8px; color: #0B1F3B; }
 .result { padding: 0 1rem 2rem; }
 .result__wrap { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 16px; align-items: start; }
 .result__image img { width: 100%; max-height: 420px; object-fit: contain; border-radius: 10px; box-shadow: 0 10px 24px rgba(2,6,23,.06); background: #fff; padding: 6px; border: 1px solid rgba(2,6,23,.06); }
@@ -334,4 +374,19 @@ const submit = async () => {
 </style>
 <style scoped>
 .surveys-toggle { padding: 0 1rem .6rem; }
+/* Make Quick Scan sections full-bleed relative to the app gutter,
+   without using viewport hacks that can get clipped by overflow rules. */
+.quickscan, .result, .surveys, .surveys-toggle {
+  width: calc(100% + var(--page-gutter) * 2);
+  margin-left: calc(var(--page-gutter) * -1);
+  margin-right: calc(var(--page-gutter) * -1);
+}
+/* But keep a small inner gutter so text isn’t cut at the edges */
+.quickscan > .container,
+.result > .container,
+.surveys > .container,
+.surveys-toggle > .container {
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
+}
 </style>

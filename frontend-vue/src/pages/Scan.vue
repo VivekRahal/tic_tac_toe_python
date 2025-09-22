@@ -24,9 +24,7 @@ onMounted(() => {
       </section>
       <section class="scan-body">
         <div class="container">
-          <div class="card">
-            <QuickScan />
-          </div>
+          <QuickScan />
         </div>
       </section>
     </div>
@@ -34,10 +32,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.scan-hero { padding: 1.2rem 1rem 0; }
-.container { max-width: 1100px; margin: 0 auto; }
+.scan-hero { padding: 1.2rem 0 0; }
+.container { max-width: 100%; width: 100%; margin: 0; }
 h1 { margin: 0 0 .3rem; font-size: 1.6rem; color: #0B1F3B; }
 .muted { color: #475569; }
-.scan-body { padding: .2rem 1rem 1.4rem; }
-.card { background: #fff; border: 1px solid rgba(2,6,23,.06); border-radius: 14px; padding: 1rem; box-shadow: 0 8px 24px rgba(2,6,23,.06); }
+.scan-body { padding: .2rem 0 1.4rem; }
 </style>

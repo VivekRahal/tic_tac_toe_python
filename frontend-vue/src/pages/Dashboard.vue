@@ -66,11 +66,11 @@ onMounted(() => fetchScans())
 </template>
 
 <style scoped>
-.dash-hero { padding: 1.2rem 1rem 0; }
-.container { max-width: 1100px; margin: 0 auto; }
+.dash-hero { padding: 1.2rem 0 0; }
+.container { max-width: 100%; width: 100%; margin: 0; }
 h1 { margin: 0 0 .3rem; font-size: 1.6rem; color: #0B1F3B; }
 .muted { color: #475569; }
-.dash-body { padding: .4rem 1rem 1.4rem; }
+.dash-body { padding: .4rem 0 1.4rem; }
 .loading, .error, .empty { background: #fff; border: 1px solid rgba(2,6,23,.06); border-radius: 14px; padding: 1rem; box-shadow: 0 8px 24px rgba(2,6,23,.06); }
 .scan-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .8rem; }
 .scan-item { background: #fff; border: 1px solid rgba(2,6,23,.06); border-radius: 14px; padding: .9rem; box-shadow: 0 8px 24px rgba(2,6,23,.06); }
@@ -80,4 +80,3 @@ h1 { margin: 0 0 .3rem; font-size: 1.6rem; color: #0B1F3B; }
 .btn { border: none; border-radius: 8px; padding: .5rem .8rem; font-weight: 700; cursor: pointer; text-decoration: none; background: #0B1F3B; color: #fff; }
 .btn.btn--small { font-size: .95rem; }
 </style>
-

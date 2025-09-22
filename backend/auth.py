@@ -3,17 +3,26 @@ from __future__ import annotations
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+import secrets
+from urllib.parse import urlencode
 
 import bcrypt
 import jwt
 from bson import ObjectId
-from fastapi import APIRouter, Header, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from db import mongodb
 from models import LoginRequest, SignupRequest, TokenResponse, UserPublic, BasicOK
 from pymongo.errors import DuplicateKeyError
 
+
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv()
+except Exception:
+    # dotenv not installed or failed to load; proceed without .env support
+    pass
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -112,13 +121,126 @@ async def login(body: LoginRequest):
     return TokenResponse(token=token, user=_user_doc_to_public(user))
 
 
-@router.get("/me", response_model=BasicOK)
-async def me(authorization: Optional[str] = Header(default=None)):
+@router.get("/me")
+async def me(authorization: Optional[str] = Header(default=None)) -> JSONResponse:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.split(" ", 1)[1]
     try:
-        _ = _decode_token(token)
+        claims = _decode_token(token)
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    return BasicOK()
+    return JSONResponse({"ok": True, "claims": claims})
+
+
+# ------------------ Google OAuth 2.0 ------------------
+
+GOOGLE_CLIENT_ID = os.getenv(
+    "GOOGLE_CLIENT_ID",
+    "913667938810-oq3ues92ipghbqqngtedinevcpknob5k.apps.googleusercontent.com",
+)
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI", "http://127.0.0.1:8000/api/auth/google/callback"
+)
+FRONTEND_LOGIN_URL = os.getenv(
+    "OAUTH_POST_LOGIN_REDIRECT", "http://localhost:5173/login"
+)
+
+
+@router.get("/google/start")
+async def google_start(request: Request, next: Optional[str] = None):
+    if not GOOGLE_CLIENT_ID or not GOOGLE_REDIRECT_URI:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    state = secrets.token_urlsafe(16)
+    # Build Google auth URL
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "include_granted_scopes": "true",
+        "prompt": "consent",
+        "state": state,
+    }
+    url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
+
+    resp = RedirectResponse(url=url, status_code=302)
+    resp.set_cookie("oauth_state", state, httponly=True, samesite="lax", path="/")
+    if next:
+        resp.set_cookie("oauth_next", next, httponly=True, samesite="lax", path="/")
+    return resp
+
+
+@router.get("/google/callback")
+async def google_callback(request: Request, code: Optional[str] = None, state: Optional[str] = None):
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    cookie_state = request.cookies.get("oauth_state")
+    if not state or not cookie_state or state != cookie_state:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            tr = await client.post(
+                token_url,
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            tr.raise_for_status()
+            tokens = tr.json()
+            access_token = tokens.get("access_token")
+            if not access_token:
+                raise HTTPException(status_code=400, detail="Failed to obtain access token")
+            ur = await client.get(
+                "https://openidconnect.googleapis.com/v1/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            ur.raise_for_status()
+            info = ur.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=400, detail=f"OAuth exchange failed: {e}")
+
+    email = (info.get("email") or "").lower()
+    name = info.get("name") or (email.split("@")[0] if email else "User")
+    if not email:
+        raise HTTPException(status_code=400, detail="Google profile missing email")
+
+    try:
+        users = _users()
+        user = await users.find_one({"email": email})
+        if not user:
+            doc = {
+                "email": email,
+                "name": name,
+                "role": "user",
+                "auth_provider": "google",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            }
+            res = await users.insert_one(doc)
+            uid = str(res.inserted_id)
+        else:
+            uid = str(user.get("_id"))
+    except Exception:
+        # Database unavailable
+        raise HTTPException(status_code=503, detail="Database unavailable during login. Please try again.")
+
+    token = _create_token(uid, {"email": email, "role": "user", "name": name})
+    next_path = request.cookies.get("oauth_next") or "/scan"
+    sep = "?" if ("?" not in FRONTEND_LOGIN_URL) else "&"
+    redirect_url = f"{FRONTEND_LOGIN_URL}{sep}token={token}&next={next_path}"
+    resp = RedirectResponse(url=redirect_url, status_code=302)
+    resp.delete_cookie("oauth_state")
+    resp.delete_cookie("oauth_next")
+    return resp
