@@ -9,6 +9,7 @@ import httpx
 from fastapi import FastAPI, File, Form, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from db import mongodb
 from auth import router as auth_router, parse_authorization
@@ -118,7 +119,7 @@ async def call_ollama(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
         return data
 
 
-async def call_openai(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
+async def call_openai(prompt: str, b64_images: List[str], model: Optional[str] = None) -> Dict[str, Any]:
     if not OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY not configured")
     # Build vision message: text + image URLs (data URIs)
@@ -129,7 +130,7 @@ async def call_openai(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
             "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
         })
     payload = {
-        "model": OPENAI_MODEL,
+        "model": model or OPENAI_MODEL,
         "messages": [{"role": "user", "content": content}],
         "temperature": 0.2,
     }
@@ -141,6 +142,31 @@ async def call_openai(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
         # Normalize to { response: str }
         text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         return {"response": text}
+
+
+class OpenAIChatRequest(BaseModel):
+    prompt: str
+    image_b64: Optional[str] = None
+    model: Optional[str] = None
+
+
+class OpenAIChatResponse(BaseModel):
+    ok: bool
+    model: str
+    response: str
+
+
+@app.post("/api/openai/chat", response_model=OpenAIChatResponse)
+async def openai_chat(body: OpenAIChatRequest) -> JSONResponse:
+    if not OPENAI_API_KEY:
+        return JSONResponse(status_code=500, content={"ok": False, "model": OPENAI_MODEL, "response": "OPENAI_API_KEY not configured"})
+    try:
+        images = [body.image_b64] if body.image_b64 else []
+        data = await call_openai(body.prompt, images, model=body.model)
+        model_used = body.model or OPENAI_MODEL
+        return JSONResponse(content={"ok": True, "model": model_used, "response": data.get("response", "")})
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"ok": False, "model": body.model or OPENAI_MODEL, "response": f"Error: {e}"})
 
 
 @app.post("/api/scan")
