@@ -148,6 +148,8 @@ const openSurveys = async () => {
 // Questions (prompts) selector
 const questionItems = ref([])
 const selectedQuestionId = ref('rics_analyze')
+// Provider selector: 'ollama' (local llava) or 'openai' (API key)
+const selectedProvider = ref('ollama')
 
 const onClick = () => {
   const token = localStorage.getItem('hs_token')
@@ -170,6 +172,7 @@ const submit = async () => {
     const fd = new FormData()
     for (const f of files.value) fd.append('files', f)
     fd.append('question_id', selectedQuestionId.value || 'rics_analyze')
+    fd.append('provider', selectedProvider.value || 'ollama')
     const headers = {}
     if (token) headers['Authorization'] = `Bearer ${token}`
     const res = await fetch(`${API_BASE}/api/scan`, { method: 'POST', body: fd, headers })
@@ -228,6 +231,13 @@ const submit = async () => {
           <label for="qs-question">Question</label>
           <select id="qs-question" v-model="selectedQuestionId">
             <option v-for="q in questionItems" :key="q.id" :value="q.id" :title="q.prompt">{{ q.id }}</option>
+          </select>
+        </div>
+        <div class="provider">
+          <label for="qs-provider">Engine</label>
+          <select id="qs-provider" v-model="selectedProvider">
+            <option value="ollama">LLaVA (local)</option>
+            <option value="openai">OpenAI (API key)</option>
           </select>
         </div>
         <input id="qs-input" ref="fileInput" class="hidden-input" type="file" accept="image/*" capture="environment" multiple @change="onChange" />

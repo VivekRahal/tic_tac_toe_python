@@ -23,6 +23,11 @@ except Exception:
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 MODEL_NAME = os.getenv("OLLAMA_MODEL", "llava:7b")
 
+# OpenAI provider configuration (optional)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
 
 QUESTIONS: Dict[str, str] = {
     "rics_analyze": (
@@ -113,11 +118,37 @@ async def call_ollama(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
         return data
 
 
+async def call_openai(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
+    if not OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY not configured")
+    # Build vision message: text + image URLs (data URIs)
+    content: List[Dict[str, Any]] = [{"type": "text", "text": prompt}]
+    for b64 in b64_images:
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
+        })
+    payload = {
+        "model": OPENAI_MODEL,
+        "messages": [{"role": "user", "content": content}],
+        "temperature": 0.2,
+    }
+    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=120) as client:
+        r = await client.post(f"{OPENAI_API_BASE}/chat/completions", headers=headers, json=payload)
+        r.raise_for_status()
+        data = r.json()
+        # Normalize to { response: str }
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return {"response": text}
+
+
 @app.post("/api/scan")
 async def scan_image(
     files: Optional[List[UploadFile]] = File(None),
     file: Optional[UploadFile] = File(None),
     question_id: str = Form("rics_analyze"),
+    provider: str = Form("ollama"),
     authorization: Optional[str] = Header(default=None),
 ) -> JSONResponse:
     # Require auth and get user id
@@ -127,6 +158,7 @@ async def scan_image(
         question_id = "rics_analyze"
 
     prompt = QUESTIONS[question_id]
+    provider = (provider or "ollama").lower()
     to_process: List[UploadFile] = []
     if files:
         to_process.extend(files)
@@ -140,19 +172,24 @@ async def scan_image(
         for f in to_process:
             contents = await f.read()
             b64 = _b64_image(contents)
-            resp = await call_ollama(prompt, [b64])
+            if provider == "openai":
+                resp = await call_openai(prompt, [b64])
+                used_model = OPENAI_MODEL
+            else:
+                resp = await call_ollama(prompt, [b64])
+                used_model = MODEL_NAME
             results.append({
                 "image_b64": b64,
                 "response": resp.get("response", ""),
             })
     except Exception as e:
-        return JSONResponse(status_code=502, content={"ok": False, "error": f"Failed to query Ollama: {e}"})
+        return JSONResponse(status_code=502, content={"ok": False, "error": f"Failed to query provider: {e}"})
 
     # Persist scan document
     doc: Dict[str, Any] = {
         "user_id": ObjectId(user_id) if user_id else None,
         "question_id": question_id,
-        "model": MODEL_NAME,
+        "model": OPENAI_MODEL if provider == "openai" else MODEL_NAME,
         "results": results,
         "images_count": len(results),
         "created_at": __import__("datetime").datetime.utcnow(),
