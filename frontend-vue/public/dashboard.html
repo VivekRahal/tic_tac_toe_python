@@ -242,15 +242,15 @@
           const id = url.searchParams.get('id')
           const headers = { 'Authorization': `Bearer ${token}` }
           if (id){
-            const r = await fetch('http://127.0.0.1:8000/api/scans/' + encodeURIComponent(id), { headers })
+            const r = await fetch('http://localhost:8000/api/scans/' + encodeURIComponent(id), { headers })
             const j = await r.json(); if (!r.ok || !j?.ok) throw new Error(j?.error || 'Failed to load scan')
             return j.scan
           }
-          const res = await fetch('http://127.0.0.1:8000/api/scans', { headers })
+          const res = await fetch('http://localhost:8000/api/scans', { headers })
           const json = await res.json(); if (!res.ok || !json?.ok) throw new Error(json?.error || 'Failed to list scans')
           if (!json.items?.length) throw new Error('No scans available')
           const latestId = json.items[0].id
-          const r2 = await fetch('http://127.0.0.1:8000/api/scans/' + encodeURIComponent(latestId), { headers })
+          const r2 = await fetch('http://localhost:8000/api/scans/' + encodeURIComponent(latestId), { headers })
           const j2 = await r2.json(); if (!r2.ok || !j2?.ok) throw new Error(j2?.error || 'Failed to load scan')
           return j2.scan
         }

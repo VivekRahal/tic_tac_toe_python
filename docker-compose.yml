@@ -25,15 +25,14 @@ services:
     depends_on:
       - mongodb
       - ollama
+    env_file:
+      - ./backend/.env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=ukrics
       - OLLAMA_URL=http://ollama:11434/api/generate
       - OLLAMA_MODEL=llava:7b
-      - JWT_SECRET=change-me
       - JWT_EXP_DAYS=7
-      - OAUTH_POST_LOGIN_REDIRECT=http://localhost:8080/login
-      - GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
     ports:
       - "8000:8000"
 
@@ -41,8 +40,8 @@ services:
     build:
       context: ./frontend-vue
       args:
-        # Browser calls hit frontend container; nginx proxies /api/* to backend
-        - VITE_API_BASE=
+        # Browser calls the backend directly on localhost:8000
+        - VITE_API_BASE=http://localhost:8000
     restart: unless-stopped
     depends_on:
       - backend
@@ -52,4 +51,3 @@ services:
 volumes:
   mongo-data:
   ollama:
-

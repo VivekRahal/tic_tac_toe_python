@@ -39,11 +39,11 @@ const submit = async () => {
     <div class="card">
       <h1>Create Account</h1>
       <form @submit.prevent="submit">
-        <label>Name (optional)<input type="text" v-model="name" autocomplete="name" /></label>
-        <label>Email<input type="email" v-model="email" autocomplete="email" required /></label>
-        <label>Password<input type="password" v-model="password" autocomplete="new-password" required /></label>
+        <label>Name (optional)<input id="signup-name" name="name" type="text" v-model="name" autocomplete="name" /></label>
+        <label>Email<input id="signup-email" name="email" type="email" v-model="email" autocomplete="email" required /></label>
+        <label>Password<input id="signup-password" name="password" type="password" v-model="password" autocomplete="new-password" required /></label>
         <label>Role
-          <select v-model="role">
+          <select id="signup-role" name="role" v-model="role">
             <option value="user">User</option>
             <option value="itn">ITN</option>
             <option value="admin">Admin</option>

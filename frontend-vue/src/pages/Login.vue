@@ -76,8 +76,8 @@ onMounted(async () => {
     <div class="card">
       <h1>Log In</h1>
       <form @submit.prevent="submit">
-        <label>Email<input type="email" v-model="email" autocomplete="email" required /></label>
-        <label>Password<input type="password" v-model="password" autocomplete="current-password" required /></label>
+        <label>Email<input id="login-email" name="email" type="email" v-model="email" autocomplete="email" required /></label>
+        <label>Password<input id="login-password" name="password" type="password" v-model="password" autocomplete="current-password" required /></label>
         <button type="submit" :disabled="loading">{{ loading ? 'Signing in…' : 'Log In' }}</button>
         <button class="google" type="button" @click="googleSignIn">
           <span class="gicon" aria-hidden="true">

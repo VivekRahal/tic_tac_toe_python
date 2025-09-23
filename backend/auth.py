@@ -141,7 +141,7 @@ GOOGLE_CLIENT_ID = os.getenv(
 )
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv(
-    "GOOGLE_REDIRECT_URI", "http://127.0.0.1:8000/api/auth/google/callback"
+    "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback"
 )
 FRONTEND_LOGIN_URL = os.getenv(
     "OAUTH_POST_LOGIN_REDIRECT", "http://localhost:5173/login"

@@ -5,7 +5,7 @@ This backend exposes a simple API to analyze property photos using the local Oll
 ## Prerequisites
 
 - Python 3.10+
-- [Ollama](https://ollama.com/) installed and running locally (default: `http://127.0.0.1:11434`).
+- [Ollama](https://ollama.com/) installed and running locally (default: `http://localhost:11434`).
 - Pull the vision model once:
 
 ```
@@ -24,7 +24,7 @@ pip install -r requirements.txt
 ## Run
 
 ```
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn main:app --host localhost --port 8000 --reload
 ```
 
 ## API
@@ -40,4 +40,3 @@ uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 
 - The backend requests the model to respond as strict JSON for easier rendering on the frontend.
 - CORS is enabled for local development (all origins). Adjust in `main.py` for production.
-

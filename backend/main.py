@@ -20,7 +20,7 @@ except Exception:
 
 
 # Allow overriding model and Ollama endpoint via environment
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 MODEL_NAME = os.getenv("OLLAMA_MODEL", "llava:7b")
 
 
