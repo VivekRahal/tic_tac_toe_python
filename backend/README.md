@@ -15,7 +15,7 @@ ollama pull llava:7b
 ## Install
 
 ```
-cd tic_tac_toe_python/backend
+cd survey/backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

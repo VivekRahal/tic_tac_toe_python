@@ -1,4 +1,4 @@
-# tic_tac_toe_python
+# survey
 This is my first flask API for a python tic-tac-toe game.
 Using the POST method, Postman is used to communicate data to a server.
 We provide players' names and symbol data first, followed by player symbol, row, and column position until the game is over or a winner is found.
@@ -76,7 +76,7 @@ Prerequisites:
 
 Run everything:
 ```bash
-cd tic_tac_toe_python
+cd survey
 docker compose up --build
 ```
 
