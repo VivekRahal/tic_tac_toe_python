@@ -2,6 +2,7 @@
 import NavBar from '../components/landing/NavBar.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_BASE } from '../api'
 
 const router = useRouter()
 const items = ref([])
@@ -14,7 +15,7 @@ const fetchScans = async () => {
   try {
     const token = localStorage.getItem('hs_token')
     if (!token) { router.replace({ name: 'login' }); return }
-    const res = await fetch('http://127.0.0.1:8000/api/scans', { headers: { 'Authorization': `Bearer ${token}` } })
+    const res = await fetch(`${API_BASE}/api/scans`, { headers: { 'Authorization': `Bearer ${token}` } })
     const json = await res.json()
     if (!res.ok || !json?.ok) throw new Error(json?.error || 'Failed to load scans')
     items.value = json.items || []

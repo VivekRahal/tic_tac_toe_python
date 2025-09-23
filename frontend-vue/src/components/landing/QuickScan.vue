@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { API_BASE } from '../../api'
 
 // Circular Quick Scan with submit to backend (multi-image support)
 const fileInput = ref(null)
@@ -82,7 +83,7 @@ onMounted(async () => {
   window.addEventListener('resize', onResize)
   // Load available analysis questions
   try {
-    const r = await fetch('http://127.0.0.1:8000/api/questions')
+    const r = await fetch(`${API_BASE}/api/questions`)
     const j = await r.json()
     if (j && Array.isArray(j.items)) {
       questionItems.value = j.items
@@ -107,11 +108,11 @@ const fetchSurveys = async () => {
     const token = localStorage.getItem('hs_token')
     if (!token) { window.location.href = '/login'; return }
     const headers = { 'Authorization': `Bearer ${token}` }
-    const res = await fetch('http://127.0.0.1:8000/api/scans', { headers })
+    const res = await fetch(`${API_BASE}/api/scans`, { headers })
     const json = await res.json()
     if (!res.ok || !json?.ok) throw new Error(json?.error || 'Failed to load scans')
     const ids = (json.items || []).map(it => it.id).slice(0, 12)
-    const detailPromises = ids.map(id => fetch(`http://127.0.0.1:8000/api/scans/${encodeURIComponent(id)}`, { headers }).then(r => r.json()))
+    const detailPromises = ids.map(id => fetch(`${API_BASE}/api/scans/${encodeURIComponent(id)}`, { headers }).then(r => r.json()))
     const details = await Promise.all(detailPromises)
     surveys.value = details.filter(j => j?.ok && j.scan).map(j => j.scan).map(scan => ({
       id: scan.id,
@@ -171,7 +172,7 @@ const submit = async () => {
     fd.append('question_id', selectedQuestionId.value || 'rics_analyze')
     const headers = {}
     if (token) headers['Authorization'] = `Bearer ${token}`
-    const res = await fetch('http://127.0.0.1:8000/api/scan', { method: 'POST', body: fd, headers })
+    const res = await fetch(`${API_BASE}/api/scan`, { method: 'POST', body: fd, headers })
     const json = await res.json()
     if (!res.ok || json?.ok === false) {
       const msg = json?.detail || json?.error || 'Scan failed'

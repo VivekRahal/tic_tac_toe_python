@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 from typing import Any, Dict, List, Optional
+import os
 
 import httpx
 from fastapi import FastAPI, File, Form, UploadFile, Header
@@ -18,8 +19,9 @@ except Exception:
     load_dotenv = None  # type: ignore
 
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-MODEL_NAME = "llava:7b"
+# Allow overriding model and Ollama endpoint via environment
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "llava:7b")
 
 
 QUESTIONS: Dict[str, str] = {

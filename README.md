@@ -66,3 +66,26 @@ The output will be placed in `frontend-vue/dist`. You can optionally verify the 
 ### Legacy static prototype
 
 The original static prototype remains in `frontend/` for reference. It mirrors the Vue implementation but is no longer the primary entry point for development.
+
+## Docker (compose) quick start
+
+This repo ships with containerization for all services: Frontend (Nginx), Backend (FastAPI/Uvicorn), MongoDB, and Ollama.
+
+Prerequisites:
+- Docker and Docker Compose
+
+Run everything:
+```bash
+cd tic_tac_toe_python
+docker compose up --build
+```
+
+Open:
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:8000
+- Ollama (for debugging): http://localhost:11434
+
+Notes:
+- The first image analysis triggers an automatic model pull (llava:7b) inside the `ollama` container; this can take several minutes on first run.
+- The frontend proxies `/api/*` to the backend, so browser calls are same‑origin and CORS is not required.
+- To change the model or endpoints, set env vars in compose: `OLLAMA_MODEL`, `OLLAMA_URL`, `MONGODB_URI`, `JWT_SECRET`.

@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"  # expose for local debugging / model pulling
+    volumes:
+      - ollama:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=2h
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - ollama
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=ukrics
+      - OLLAMA_URL=http://ollama:11434/api/generate
+      - OLLAMA_MODEL=llava:7b
+      - JWT_SECRET=change-me
+      - JWT_EXP_DAYS=7
+      - OAUTH_POST_LOGIN_REDIRECT=http://localhost:8080/login
+      - GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend-vue
+      args:
+        # Browser calls hit frontend container; nginx proxies /api/* to backend
+        - VITE_API_BASE=
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mongo-data:
+  ollama:
+

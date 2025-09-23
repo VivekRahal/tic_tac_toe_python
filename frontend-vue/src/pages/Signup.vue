@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_BASE } from '../api'
 
 const router = useRouter()
 const name = ref('')
@@ -15,7 +16,7 @@ const submit = async () => {
   if (!email.value || !password.value) { error.value = 'Email and password are required.'; return }
   loading.value = true
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/auth/signup', {
+    const res = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.value, password: password.value, name: name.value, role: role.value })
