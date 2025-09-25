@@ -185,8 +185,84 @@ function ResultPage(){
   )
 }
 
+function LoginPage({ goScan, goSignup }:{ goScan: ()=>void, goSignup: ()=>void }){
+  const [email,setEmail] = useState('')
+  const [password,setPassword] = useState('')
+  const [loading,setLoading] = useState(false)
+  const [error,setError] = useState('')
+  const submit = async ()=>{
+    setError('')
+    if(!email || !password) { setError('Email and password are required'); return }
+    setLoading(true)
+    try{
+      const res = await fetch(`${API_BASE}/api/auth/login`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) })
+      const j = await res.json()
+      if(!res.ok || j?.ok===false){
+        if(res.status===401){ setError('Invalid email or password.'); return }
+        throw new Error(j?.detail || 'Login failed')
+      }
+      localStorage.setItem('hs_token', j.token)
+      localStorage.setItem('hs_user', JSON.stringify(j.user||{}))
+      goScan()
+    }catch(e:any){ setError(e.message || 'Login failed') }
+    finally{ setLoading(false) }
+  }
+  return (
+    <div className="mx-auto w-[min(500px,92vw)] py-10">
+      <div className={`${glass} ${soft3D} rounded-3xl p-6 border border-white/20`}>
+        <h2 className="text-white text-xl font-bold mb-4">Sign in</h2>
+        <div className="grid gap-3">
+          <input aria-label="Email" className="rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/20 px-3 py-2" placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+          <input aria-label="Password" className="rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/20 px-3 py-2" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+          <button className={`rounded-xl bg-white/20 px-3 py-2 ${pressable}`} onClick={submit} disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          <button className={`rounded-xl bg-white/10 px-3 py-2 border border-white/30 ${pressable}`} onClick={()=>{ window.location.href = `${API_BASE}/api/auth/google/start?next=/scan` }}>Continue with Google</button>
+          {error && <div className="text-sm text-red-300">{error}</div>}
+          <div className="text-sm text-white/70">No account? <button className="underline" onClick={goSignup}>Sign up</button></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SignupPage({ goScan, goLogin }:{ goScan: ()=>void, goLogin: ()=>void }){
+  const [name,setName] = useState('')
+  const [email,setEmail] = useState('')
+  const [password,setPassword] = useState('')
+  const [loading,setLoading] = useState(false)
+  const [error,setError] = useState('')
+  const submit = async ()=>{
+    setError('')
+    if(!email || !password) { setError('Email and password are required'); return }
+    setLoading(true)
+    try{
+      const res = await fetch(`${API_BASE}/api/auth/signup`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, name, role:'user' }) })
+      const j = await res.json()
+      if(!res.ok || j?.ok===false){ throw new Error(j?.detail || 'Signup failed') }
+      localStorage.setItem('hs_token', j.token)
+      localStorage.setItem('hs_user', JSON.stringify(j.user||{}))
+      goScan()
+    }catch(e:any){ setError(e.message || 'Signup failed') }
+    finally{ setLoading(false) }
+  }
+  return (
+    <div className="mx-auto w-[min(500px,92vw)] py-10">
+      <div className={`${glass} ${soft3D} rounded-3xl p-6 border border-white/20`}>
+        <h2 className="text-white text-xl font-bold mb-4">Create account</h2>
+        <div className="grid gap-3">
+          <input aria-label="Name" className="rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/20 px-3 py-2" placeholder="Name (optional)" value={name} onChange={e=>setName(e.target.value)} />
+          <input aria-label="Email" className="rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/20 px-3 py-2" placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+          <input aria-label="Password" className="rounded-xl bg-white/10 text-white placeholder:text-white/40 border border-white/20 px-3 py-2" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+          <button className={`rounded-xl bg-white/20 px-3 py-2 ${pressable}`} onClick={submit} disabled={loading}>{loading ? 'Creating…' : 'Sign up'}</button>
+          {error && <div className="text-sm text-red-300">{error}</div>}
+          <div className="text-sm text-white/70">Already have an account? <button className="underline" onClick={goLogin}>Log in</button></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App(){
-  const [page,setPage] = useState<'home'|'scan'|'result'>('home')
+  const [page,setPage] = useState<'home'|'login'|'signup'|'scan'|'result'>('home')
   // Handle OAuth return: store token from query params and redirect to desired page
   useEffect(() => {
     try {
@@ -210,8 +286,13 @@ export default function App(){
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(1200px_600px_at_10%_-10%,rgba(56,189,248,0.25),transparent),radial-gradient(1200px_600px_at_100%_10%,rgba(99,102,241,0.25),transparent),linear-gradient(180deg,#0b0f1a,40%,#0b0f1a)]">
       <div className="pointer-events-none fixed inset-0"/>
-      <Nav page={page} setPage={setPage}/>
-      {page==='home' && <HomePage goScan={()=>setPage('scan')}/>} 
+      <Nav page={page} setPage={(p)=>{
+        if(p==='scan' && !localStorage.getItem('hs_token')) { setPage('login'); return }
+        setPage(p as any)
+      }}/>
+      {page==='home' && <HomePage goScan={()=> setPage(localStorage.getItem('hs_token') ? 'scan' : 'login') }/>} 
+      {page==='login' && <LoginPage goScan={()=>setPage('scan')} goSignup={()=>setPage('signup')} />}
+      {page==='signup' && <SignupPage goScan={()=>setPage('scan')} goLogin={()=>setPage('login')} />}
       {page==='scan' && <ScanPage goResult={()=>setPage('result')}/>} 
       {page==='result' && <ResultPage/>}
       <footer className="mx-auto mb-10 mt-16 w-[min(1200px,92vw)] text-center text-xs text-white/50">© {new Date().getFullYear()} HomeSurvey AI</footer>
