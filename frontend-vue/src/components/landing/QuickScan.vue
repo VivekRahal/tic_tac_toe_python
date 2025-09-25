@@ -49,6 +49,37 @@ const titleText = computed(() => {
   return ''
 })
 
+const riskLevel = computed(() => {
+  const obj = resultJson.value
+  const val = obj && typeof obj === 'object' ? (obj.risk_level || obj.risk || obj.riskLevel) : ''
+  const s = String(val || '').toLowerCase()
+  return s === 'high' || s === 'moderate' || s === 'low' ? s : ''
+})
+
+const summaryText = computed(() => {
+  const obj = resultJson.value
+  return obj && typeof obj === 'object' && obj.summary ? String(obj.summary) : ''
+})
+
+const findingsList = computed(() => {
+  const obj = resultJson.value
+  if (obj && typeof obj === 'object') {
+    if (Array.isArray(obj.findings)) return obj.findings
+    if (Array.isArray(obj.issues)) return obj.issues
+  }
+  return []
+})
+
+const actionsList = computed(() => {
+  const obj = resultJson.value
+  if (obj && typeof obj === 'object') {
+    if (Array.isArray(obj.recommended_actions)) return obj.recommended_actions
+    if (Array.isArray(obj.actions)) return obj.actions
+    if (Array.isArray(obj.recommendations)) return obj.recommendations
+  }
+  return []
+})
+
 const keywords = computed(() => {
   const obj = resultJson.value
   if (obj && typeof obj === 'object') {
@@ -282,11 +313,37 @@ const submit = async () => {
         <img v-if="imageUrl" :src="imageUrl" alt="Uploaded image" ref="imgEl" />
       </div>
       <div class="result__info" :style="infoMaxHeight ? { maxHeight: infoMaxHeight + 'px', overflow: 'auto' } : {}">
-        <h3 v-if="titleText" class="result__title">{{ titleText }}</h3>
-        <ul class="compact-list" v-if="lines.length">
-          <li v-for="(t, i) in lines" :key="i">{{ t }}</li>
-        </ul>
-        <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
+        <!-- Headline -->
+        <div class="result__headline">
+          <h3 v-if="titleText" class="result__title">{{ titleText }}</h3>
+          <span v-if="riskLevel" class="risk-badge" :class="`risk--${riskLevel}`">{{ riskLevel }}</span>
+        </div>
+
+        <!-- Structured sections if JSON parsed; otherwise fallback to plain list/text -->
+        <template v-if="resultJson">
+          <p v-if="summaryText" class="result__summary">{{ summaryText }}</p>
+
+          <section v-if="findingsList.length" class="result__section">
+            <h4>Findings</h4>
+            <ul class="compact-list">
+              <li v-for="(t, i) in findingsList" :key="`f-${i}`">{{ t }}</li>
+            </ul>
+          </section>
+
+          <section v-if="actionsList.length" class="result__section">
+            <h4>Recommended actions</h4>
+            <ul class="compact-list">
+              <li v-for="(t, i) in actionsList" :key="`a-${i}`">{{ t }}</li>
+            </ul>
+          </section>
+        </template>
+        <template v-else>
+          <ul class="compact-list" v-if="lines.length">
+            <li v-for="(t, i) in lines" :key="i">{{ t }}</li>
+          </ul>
+          <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
+        </template>
+
         <div v-if="keywords.length" class="kw-row">
           <span class="kw-chip" v-for="(kw, i) in keywords" :key="i">{{ kw }}</span>
         </div>
@@ -353,7 +410,16 @@ const submit = async () => {
 .result { padding: 0 1rem 2rem; }
 .result__wrap { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 16px; align-items: start; }
 .result__image img { width: 100%; max-height: 420px; object-fit: contain; border-radius: 10px; box-shadow: 0 10px 24px rgba(2,6,23,.06); background: #fff; padding: 6px; border: 1px solid rgba(2,6,23,.06); }
+.result__info { position: sticky; top: 12px; align-self: start; }
 .result__title { margin: 0 0 6px; font-size: 1.05rem; font-weight: 900; letter-spacing: .01em; color: #0B1F3B; }
+.result__headline { display: flex; align-items: baseline; gap: .6rem; margin-bottom: .25rem; }
+.result__summary { margin: .2rem 0 .6rem; color: #0B1F3B; }
+.result__section { margin: .6rem 0 .2rem; }
+.result__section h4 { margin: 0 0 .25rem; font-size: .95rem; color: #0B1F3B; }
+.risk-badge { text-transform: uppercase; font-size: .7rem; font-weight: 900; padding: .18rem .5rem; border-radius: 999px; letter-spacing: .04em; }
+.risk--low { background: #e6f9f0; color: #0a7f4f; border: 1px solid #b8edd7; }
+.risk--moderate { background: #fff6e6; color: #a66300; border: 1px solid #ffe0a8; }
+.risk--high { background: #ffecec; color: #a31212; border: 1px solid #ffb4b4; }
 .compact-list { list-style: disc; padding-left: 18px; margin: 0; display: grid; gap: 6px; font-size: .92rem; line-height: 1.35; }
 .compact-list li { margin: 0; color: #0B1F3B; }
 .plain-text { background: #fff; border: 1px solid rgba(2,6,23,.06); border-radius: 8px; padding: 10px; box-shadow: 0 6px 14px rgba(2,6,23,.04); color: #0B1F3B; font-size: .92rem; line-height: 1.35; }
