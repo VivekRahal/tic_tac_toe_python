@@ -12,6 +12,8 @@ const imgEl = ref(null)
 const infoMaxHeight = ref(null)
 const resultText = ref('')
 const resultJson = ref(null)
+const selectedTab = ref('raw') // 'structured' | 'raw' | 'json'
+const toast = ref({ show: false, type: 'success', message: '' })
 const usedProvider = ref('')
 const usedModel = ref('')
 
@@ -246,6 +248,7 @@ const submit = async () => {
     localStorage.setItem('hs_last_envelope', JSON.stringify(json))
     // Try to parse JSON for structured view
     resultJson.value = extractJSON(resultText.value) || parseMaybeJSON(resultText.value)
+    selectedTab.value = resultJson.value ? 'structured' : 'raw'
 
     // Ensure results are visible (hide surveys) and scroll to result
     showSurveys.value = false
@@ -258,9 +261,21 @@ const submit = async () => {
     if (fileInput.value) fileInput.value.value = ''
     dragOver.value = false
   } catch (e) {
-    alert((e && e.message) ? e.message : 'Upload failed. Make sure backend is running on :8000')
+    const msg = (e && e.message) ? e.message : 'Upload failed. Make sure backend is running on :8000'
+    toast.value = { show: true, type: 'error', message: msg }
   } finally {
     submitting.value = false
+  }
+}
+
+const closeToast = () => { toast.value.show = false }
+const copyJson = async () => {
+  try {
+    const j = resultJson.value ? JSON.stringify(resultJson.value, null, 2) : (resultText.value || '')
+    await navigator.clipboard.writeText(j)
+    toast.value = { show: true, type: 'success', message: 'Copied to clipboard' }
+  } catch {
+    toast.value = { show: true, type: 'error', message: 'Copy failed' }
   }
 }
 </script>
@@ -314,51 +329,83 @@ const submit = async () => {
       </div>
     </div>
   </section>
+  <!-- Skeleton loader while analyzing -->
+  <section v-if="submitting" class="result" aria-hidden="true">
+    <div class="container result__wrap">
+      <div class="result__image">
+        <div class="skeleton-box" style="height:320px"></div>
+      </div>
+      <div class="result__info">
+        <div class="skeleton-line" style="width:60%"></div>
+        <div class="skeleton-chip-row">
+          <span class="skeleton-chip"></span>
+          <span class="skeleton-chip"></span>
+        </div>
+        <div class="skeleton-line" style="width:90%"></div>
+        <div class="skeleton-line" style="width:80%"></div>
+        <div class="skeleton-line" style="width:70%"></div>
+      </div>
+    </div>
+  </section>
   <section v-if="!hasResult" class="surveys-toggle">
     <div class="container">
       <button class="btn btn--outline" type="button" @click="openSurveys">Surveys {{ showSurveys ? '▼' : '▲' }}</button>
     </div>
   </section>
-  <section v-if="hasResult" class="result" id="qs-result">
-    <div class="container result__wrap">
+  <section v-if="hasResult" class="result" id="qs-result" role="region" aria-labelledby="qs-result-title">
+    <div class="container result__wrap" aria-live="polite">
       <div class="result__image">
         <img v-if="imageUrl" :src="imageUrl" alt="Uploaded image" ref="imgEl" />
       </div>
       <div class="result__info" :style="infoMaxHeight ? { maxHeight: infoMaxHeight + 'px', overflow: 'auto' } : {}">
         <!-- Headline -->
         <div class="result__headline">
-          <h3 v-if="titleText" class="result__title">{{ titleText }}</h3>
+          <h2 id="qs-result-title" v-if="titleText" class="result__title">{{ titleText }}</h2>
           <span v-if="riskLevel" class="risk-badge" :class="`risk--${riskLevel}`">{{ riskLevel }}</span>
           <span v-if="engineLabel" class="engine-badge">{{ engineLabel }}</span>
         </div>
 
+        <!-- Tabs -->
+        <div class="tabs" role="tablist" aria-label="Result view">
+          <button class="tab" :class="{active: selectedTab==='structured'}" role="tab" @click="selectedTab='structured'" :aria-selected="selectedTab==='structured'">Structured</button>
+          <button class="tab" :class="{active: selectedTab==='raw'}" role="tab" @click="selectedTab='raw'" :aria-selected="selectedTab==='raw'">Raw</button>
+          <button class="tab" :class="{active: selectedTab==='json'}" role="tab" @click="selectedTab='json'" :aria-selected="selectedTab==='json'">JSON</button>
+          <button class="copy" type="button" @click="copyJson">Copy</button>
+        </div>
+
         <!-- Structured sections if JSON parsed; otherwise fallback to plain list/text -->
-        <template v-if="resultJson">
-          <p v-if="summaryText" class="result__summary">{{ summaryText }}</p>
-
-          <section v-if="findingsList.length" class="result__section">
-            <h4>Findings</h4>
-            <ul class="compact-list">
-              <li v-for="(t, i) in findingsList" :key="`f-${i}`">{{ t }}</li>
+        <template v-if="selectedTab==='structured'">
+          <template v-if="resultJson">
+            <p v-if="summaryText" class="result__summary">{{ summaryText }}</p>
+            <section v-if="findingsList.length" class="result__section">
+              <h3>Findings</h3>
+              <ul class="compact-list">
+                <li v-for="(t, i) in findingsList" :key="`f-${i}`">{{ t }}</li>
+              </ul>
+            </section>
+            <section v-if="actionsList.length" class="result__section">
+              <h3>Recommended actions</h3>
+              <ul class="compact-list">
+                <li v-for="(t, i) in actionsList" :key="`a-${i}`">{{ t }}</li>
+              </ul>
+            </section>
+          </template>
+          <template v-else>
+            <ul class="compact-list" v-if="lines.length">
+              <li v-for="(t, i) in lines" :key="i">{{ t }}</li>
             </ul>
-          </section>
-
-          <section v-if="actionsList.length" class="result__section">
-            <h4>Recommended actions</h4>
-            <ul class="compact-list">
-              <li v-for="(t, i) in actionsList" :key="`a-${i}`">{{ t }}</li>
-            </ul>
-          </section>
+            <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
+          </template>
+        </template>
+        <template v-else-if="selectedTab==='raw'">
+          <div class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
         </template>
         <template v-else>
-          <ul class="compact-list" v-if="lines.length">
-            <li v-for="(t, i) in lines" :key="i">{{ t }}</li>
-          </ul>
-          <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
+          <pre class="plain-text" style="overflow:auto;">{{ resultJson ? JSON.stringify(resultJson, null, 2) : resultText }}</pre>
         </template>
 
         <section v-if="keywords.length" class="result__section">
-          <h4>Keywords</h4>
+          <h3>Keywords</h3>
           <div class="kw-row">
             <span class="kw-chip" v-for="(kw, i) in keywords" :key="i">{{ kw }}</span>
           </div>
@@ -390,6 +437,8 @@ const submit = async () => {
       </div>
     </div>
   </section>
+  <!-- Toast -->
+  <div v-if="toast.show" class="toast" :class="`toast--${toast.type}`" role="status" aria-live="polite" @click="closeToast">{{ toast.message }}</div>
 </template>
 
 <style scoped>
@@ -437,9 +486,9 @@ const submit = async () => {
 .risk--moderate { background: #fff6e6; color: #a66300; border: 1px solid #ffe0a8; }
 .risk--high { background: #ffecec; color: #a31212; border: 1px solid #ffb4b4; }
 .engine-badge { font-size: .75rem; font-weight: 800; color: #475569; border: 1px dashed rgba(2,6,23,.15); padding: .18rem .5rem; border-radius: 999px; }
-.compact-list { list-style: disc; padding-left: 18px; margin: 0; display: grid; gap: 6px; font-size: .92rem; line-height: 1.35; }
+.compact-list { list-style: disc; padding-left: 18px; margin: 0; display: grid; gap: 6px; font-size: .95rem; line-height: 1.5; }
 .compact-list li { margin: 0; color: #0B1F3B; }
-.plain-text { background: #fff; border: 1px solid rgba(2,6,23,.06); border-radius: 8px; padding: 10px; box-shadow: 0 6px 14px rgba(2,6,23,.04); color: #0B1F3B; font-size: .92rem; line-height: 1.35; }
+.plain-text { background: #fff; border: 1px solid rgba(2,6,23,.1); border-radius: 8px; padding: 12px; box-shadow: 0 6px 14px rgba(2,6,23,.06); color: #0B1F3B; font-size: .95rem; line-height: 1.5; }
 /* Keywords row with colorful 3D chips */
 .kw-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .kw-chip { display: inline-block; padding: 6px 10px; border-radius: 999px; color: #fff; font-weight: 800; font-size: .8rem; box-shadow: 0 6px 16px rgba(0,0,0,.12); transform: translateZ(0); }
