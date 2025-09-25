@@ -12,7 +12,6 @@ const imgEl = ref(null)
 const infoMaxHeight = ref(null)
 const resultText = ref('')
 const resultJson = ref(null)
-const selectedTab = ref('raw') // 'structured' | 'raw' | 'json'
 const toast = ref({ show: false, type: 'success', message: '' })
 const usedProvider = ref('')
 const usedModel = ref('')
@@ -248,7 +247,6 @@ const submit = async () => {
     localStorage.setItem('hs_last_envelope', JSON.stringify(json))
     // Try to parse JSON for structured view
     resultJson.value = extractJSON(resultText.value) || parseMaybeJSON(resultText.value)
-    selectedTab.value = resultJson.value ? 'structured' : 'raw'
 
     // Ensure results are visible (hide surveys) and scroll to result
     showSurveys.value = false
@@ -269,15 +267,6 @@ const submit = async () => {
 }
 
 const closeToast = () => { toast.value.show = false }
-const copyJson = async () => {
-  try {
-    const j = resultJson.value ? JSON.stringify(resultJson.value, null, 2) : (resultText.value || '')
-    await navigator.clipboard.writeText(j)
-    toast.value = { show: true, type: 'success', message: 'Copied to clipboard' }
-  } catch {
-    toast.value = { show: true, type: 'error', message: 'Copy failed' }
-  }
-}
 </script>
 
 <template>
@@ -365,43 +354,27 @@ const copyJson = async () => {
           <span v-if="engineLabel" class="engine-badge">{{ engineLabel }}</span>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs" role="tablist" aria-label="Result view">
-          <button class="tab" :class="{active: selectedTab==='structured'}" role="tab" @click="selectedTab='structured'" :aria-selected="selectedTab==='structured'">Structured</button>
-          <button class="tab" :class="{active: selectedTab==='raw'}" role="tab" @click="selectedTab='raw'" :aria-selected="selectedTab==='raw'">Raw</button>
-          <button class="tab" :class="{active: selectedTab==='json'}" role="tab" @click="selectedTab='json'" :aria-selected="selectedTab==='json'">JSON</button>
-          <button class="copy" type="button" @click="copyJson">Copy</button>
-        </div>
-
         <!-- Structured sections if JSON parsed; otherwise fallback to plain list/text -->
-        <template v-if="selectedTab==='structured'">
-          <template v-if="resultJson">
-            <p v-if="summaryText" class="result__summary">{{ summaryText }}</p>
-            <section v-if="findingsList.length" class="result__section">
-              <h3>Findings</h3>
-              <ul class="compact-list">
-                <li v-for="(t, i) in findingsList" :key="`f-${i}`">{{ t }}</li>
-              </ul>
-            </section>
-            <section v-if="actionsList.length" class="result__section">
-              <h3>Recommended actions</h3>
-              <ul class="compact-list">
-                <li v-for="(t, i) in actionsList" :key="`a-${i}`">{{ t }}</li>
-              </ul>
-            </section>
-          </template>
-          <template v-else>
-            <ul class="compact-list" v-if="lines.length">
-              <li v-for="(t, i) in lines" :key="i">{{ t }}</li>
+        <template v-if="resultJson">
+          <p v-if="summaryText" class="result__summary">{{ summaryText }}</p>
+          <section v-if="findingsList.length" class="result__section">
+            <h3>Findings</h3>
+            <ul class="compact-list">
+              <li v-for="(t, i) in findingsList" :key="`f-${i}`">{{ t }}</li>
             </ul>
-            <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
-          </template>
-        </template>
-        <template v-else-if="selectedTab==='raw'">
-          <div class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
+          </section>
+          <section v-if="actionsList.length" class="result__section">
+            <h3>Recommended actions</h3>
+            <ul class="compact-list">
+              <li v-for="(t, i) in actionsList" :key="`a-${i}`">{{ t }}</li>
+            </ul>
+          </section>
         </template>
         <template v-else>
-          <pre class="plain-text" style="overflow:auto;">{{ resultJson ? JSON.stringify(resultJson, null, 2) : resultText }}</pre>
+          <ul class="compact-list" v-if="lines.length">
+            <li v-for="(t, i) in lines" :key="i">{{ t }}</li>
+          </ul>
+          <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
         </template>
 
         <section v-if="keywords.length" class="result__section">
