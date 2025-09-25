@@ -205,6 +205,7 @@ async def scan_image(
         "user_id": ObjectId(user_id) if user_id else None,
         "question_id": question_id,
         "model": OPENAI_MODEL if provider == "openai" else MODEL_NAME,
+        "provider": provider,
         "results": results,
         "images_count": len(results),
         "created_at": __import__("datetime").datetime.utcnow(),
@@ -214,7 +215,8 @@ async def scan_image(
 
     payload: Dict[str, Any] = {
         "ok": True,
-        "model": MODEL_NAME,
+        "model": OPENAI_MODEL if provider == "openai" else MODEL_NAME,
+        "provider": provider,
         "question_id": question_id,
         "scan_id": str(ins.inserted_id),
         "raws": [r.get("response", "") for r in results],

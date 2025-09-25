@@ -12,6 +12,8 @@ const imgEl = ref(null)
 const infoMaxHeight = ref(null)
 const resultText = ref('')
 const resultJson = ref(null)
+const usedProvider = ref('')
+const usedModel = ref('')
 
 const hasResult = computed(() => !!(resultText.value || resultJson.value))
 
@@ -78,6 +80,14 @@ const actionsList = computed(() => {
     if (Array.isArray(obj.recommendations)) return obj.recommendations
   }
   return []
+})
+
+const engineLabel = computed(() => {
+  const prov = (usedProvider.value || '').toLowerCase()
+  const model = usedModel.value || ''
+  if (prov === 'openai') return `Engine: OpenAI (${model || 'model'})`
+  if (prov === 'ollama') return `Engine: LLaVA (${model || 'model'})`
+  return model ? `Engine: ${prov || 'unknown'} (${model})` : (prov ? `Engine: ${prov}` : '')
 })
 
 const keywords = computed(() => {
@@ -231,6 +241,8 @@ const submit = async () => {
       localStorage.setItem('hs_last_raw', json.raw)
       resultText.value = json.raw
     }
+    usedProvider.value = json?.provider || selectedProvider.value || ''
+    usedModel.value = json?.model || ''
     localStorage.setItem('hs_last_envelope', JSON.stringify(json))
     // Try to parse JSON for structured view
     resultJson.value = extractJSON(resultText.value) || parseMaybeJSON(resultText.value)
@@ -317,6 +329,7 @@ const submit = async () => {
         <div class="result__headline">
           <h3 v-if="titleText" class="result__title">{{ titleText }}</h3>
           <span v-if="riskLevel" class="risk-badge" :class="`risk--${riskLevel}`">{{ riskLevel }}</span>
+          <span v-if="engineLabel" class="engine-badge">{{ engineLabel }}</span>
         </div>
 
         <!-- Structured sections if JSON parsed; otherwise fallback to plain list/text -->
@@ -344,9 +357,12 @@ const submit = async () => {
           <div v-else class="plain-text"><p style="white-space: pre-wrap;">{{ resultText }}</p></div>
         </template>
 
-        <div v-if="keywords.length" class="kw-row">
-          <span class="kw-chip" v-for="(kw, i) in keywords" :key="i">{{ kw }}</span>
-        </div>
+        <section v-if="keywords.length" class="result__section">
+          <h4>Keywords</h4>
+          <div class="kw-row">
+            <span class="kw-chip" v-for="(kw, i) in keywords" :key="i">{{ kw }}</span>
+          </div>
+        </section>
       </div>
     </div>
   </section>
@@ -420,6 +436,7 @@ const submit = async () => {
 .risk--low { background: #e6f9f0; color: #0a7f4f; border: 1px solid #b8edd7; }
 .risk--moderate { background: #fff6e6; color: #a66300; border: 1px solid #ffe0a8; }
 .risk--high { background: #ffecec; color: #a31212; border: 1px solid #ffb4b4; }
+.engine-badge { font-size: .75rem; font-weight: 800; color: #475569; border: 1px dashed rgba(2,6,23,.15); padding: .18rem .5rem; border-radius: 999px; }
 .compact-list { list-style: disc; padding-left: 18px; margin: 0; display: grid; gap: 6px; font-size: .92rem; line-height: 1.35; }
 .compact-list li { margin: 0; color: #0B1F3B; }
 .plain-text { background: #fff; border: 1px solid rgba(2,6,23,.06); border-radius: 8px; padding: 10px; box-shadow: 0 6px 14px rgba(2,6,23,.04); color: #0B1F3B; font-size: .92rem; line-height: 1.35; }
