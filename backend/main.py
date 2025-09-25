@@ -93,9 +93,9 @@ def _b64_image(file_bytes: bytes) -> str:
     return base64.b64encode(file_bytes).decode("utf-8")
 
 
-async def call_ollama(prompt: str, b64_images: List[str]) -> Dict[str, Any]:
+async def call_ollama(prompt: str, b64_images: List[str], model: Optional[str] = None) -> Dict[str, Any]:
     payload = {
-        "model": MODEL_NAME,
+        "model": model or MODEL_NAME,
         "prompt": prompt,
         "images": b64_images,
         "stream": False,
@@ -164,6 +164,7 @@ async def scan_image(
     file: Optional[UploadFile] = File(None),
     question_id: str = Form("rics_analyze"),
     provider: str = Form("ollama"),
+    model: Optional[str] = Form(None),
     authorization: Optional[str] = Header(default=None),
 ) -> JSONResponse:
     # Require auth and get user id
@@ -188,11 +189,13 @@ async def scan_image(
             contents = await f.read()
             b64 = _b64_image(contents)
             if provider == "openai":
-                resp = await call_openai(prompt, [b64])
-                used_model = OPENAI_MODEL
+                chosen_model = model or OPENAI_MODEL
+                resp = await call_openai(prompt, [b64], model=chosen_model)
+                used_model = chosen_model
             else:
-                resp = await call_ollama(prompt, [b64])
-                used_model = MODEL_NAME
+                chosen_model = model or MODEL_NAME
+                resp = await call_ollama(prompt, [b64], model=chosen_model)
+                used_model = chosen_model
             results.append({
                 "image_b64": b64,
                 "response": resp.get("response", ""),
@@ -204,7 +207,7 @@ async def scan_image(
     doc: Dict[str, Any] = {
         "user_id": ObjectId(user_id) if user_id else None,
         "question_id": question_id,
-        "model": OPENAI_MODEL if provider == "openai" else MODEL_NAME,
+        "model": used_model if len(results) else (OPENAI_MODEL if provider == "openai" else MODEL_NAME),
         "provider": provider,
         "results": results,
         "images_count": len(results),
