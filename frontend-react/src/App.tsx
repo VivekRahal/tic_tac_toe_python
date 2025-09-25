@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Image as ImageIcon, ListChecks, ArrowRight, ShieldCheck, Droplets, FileText, Home, Sparkles } from 'lucide-react'
 
@@ -26,7 +26,14 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string)=>void }) {
             <NavButton icon={<Home className="h-4 w-4"/>} label="Home" active={page==='home'} onClick={()=>setPage('home')} />
             <NavButton icon={<Camera className="h-4 w-4"/>} label="Scan" active={page==='scan'} onClick={()=>setPage('scan')} />
             <NavButton icon={<ListChecks className="h-4 w-4"/>} label="Results" active={page==='result'} onClick={()=>setPage('result')} />
-            <button className={`ml-2 rounded-xl bg-white/20 px-3 py-2 text-sm ${pressable}`}>Sign in</button>
+            <button
+              className={`ml-2 rounded-xl bg-white/20 px-3 py-2 text-sm ${pressable}`}
+              onClick={() => {
+                window.location.href = `${API_BASE}/api/auth/google/start?next=/scan`
+              }}
+            >
+              Sign in
+            </button>
           </div>
         </div>
       </div>
@@ -180,6 +187,26 @@ function ResultPage(){
 
 export default function App(){
   const [page,setPage] = useState<'home'|'scan'|'result'>('home')
+  // Handle OAuth return: store token from query params and redirect to desired page
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const token = params.get('token')
+      const next = params.get('next') || '/scan'
+      if (token) {
+        localStorage.setItem('hs_token', token)
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+        // Map next path to app page state
+        if (next === '/scan') setPage('scan')
+        else if (next === '/result') setPage('result')
+        else setPage('home')
+      } else {
+        // If user lands on /login without token, keep home
+        if (window.location.pathname === '/login') setPage('home')
+      }
+    } catch {}
+  }, [])
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[radial-gradient(1200px_600px_at_10%_-10%,rgba(56,189,248,0.25),transparent),radial-gradient(1200px_600px_at_100%_10%,rgba(99,102,241,0.25),transparent),linear-gradient(180deg,#0b0f1a,40%,#0b0f1a)]">
       <div className="pointer-events-none fixed inset-0"/>
@@ -191,4 +218,3 @@ export default function App(){
     </div>
   )
 }
-
