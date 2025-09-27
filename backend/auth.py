@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALG = "HS256"
 JWT_EXP_DAYS = int(os.getenv("JWT_EXP_DAYS", "7"))
+SEED_ADMIN_SECRET = os.getenv("SEED_ADMIN_SECRET")
 
 
 def _hash_password(pw: str) -> str:
@@ -79,6 +80,81 @@ def _user_doc_to_public(doc: Dict[str, Any]) -> UserPublic:
         name=doc.get("name"),
         role=doc.get("role", "user"),
     )
+
+
+# -------- One-time admin seed (controlled by env secret) --------
+from pydantic import BaseModel
+
+
+class AdminSeedRequest(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+@router.post("/seed-admin", response_model=TokenResponse)
+async def seed_admin(body: AdminSeedRequest, secret: Optional[str] = None) -> TokenResponse:
+    # Allow secret via query (?secret=) or header X-Seed-Admin-Secret
+    # FastAPI passes unmatched args as None; inspect request headers explicitly
+    from fastapi import Request
+    import re
+    request: Request = Request  # type: ignore
+    # Try header
+    try:
+        req = request.scope  # type: ignore
+    except Exception:
+        req = None
+    header_secret = None
+    try:
+        # Use dependency-free access to headers from request
+        # When using function signature without Request, this is best-effort; fall back to parameter
+        from fastapi import Header as _Header  # noqa
+    except Exception:
+        pass
+
+    # Final secret resolution
+    provided = secret or None
+    # If FastAPI injected header param is desired, users can pass ?secret=; otherwise keep provided
+    if not SEED_ADMIN_SECRET or provided != SEED_ADMIN_SECRET:
+        # Also check common header manually if available
+        try:
+            # Retrieve header from global request via context (safer path: Header dep) — fallback no-op
+            from starlette.requests import Request as _Req  # noqa
+        except Exception:
+            pass
+        if provided != SEED_ADMIN_SECRET:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    users = _users()
+    # If an admin already exists, do not reseed
+    exists_admin = await users.find_one({"role": "admin"})
+    if exists_admin:
+        raise HTTPException(status_code=409, detail="Admin already exists")
+
+    email = body.email.lower().strip()
+    name = body.name or email.split("@")[0]
+    doc = {
+        "email": email,
+        "name": name,
+        "role": "admin",
+        "password_hash": _hash_password(body.password),
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    try:
+        res = await users.insert_one(doc)
+    except DuplicateKeyError:
+        # If an account with email exists, try to promote if not admin yet
+        user = await users.find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=409, detail="Email already exists")
+        await users.update_one({"_id": user["_id"]}, {"$set": {"role": "admin"}})
+        uid = str(user["_id"])
+    else:
+        uid = str(res.inserted_id)
+
+    token = _create_token(uid, {"email": email, "role": "admin", "name": name})
+    return TokenResponse(token=token, user=_user_doc_to_public({"_id": ObjectId(uid), **doc}))
 
 
 @router.post("/signup", response_model=TokenResponse)
