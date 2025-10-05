@@ -27,6 +27,25 @@ const extractJSON = (text) => {
   if (s !== -1 && e !== -1 && e > s) { const cand = text.slice(s, e+1); const p = parseMaybeJSON(cand); if (p) return p }
   return null
 }
+const dedupeStrings = (items) => {
+  const out = []
+  const seen = new Set()
+  for (const entry of Array.isArray(items) ? items : []) {
+    const str = String(entry ?? '').trim()
+    if (!str) continue
+    const key = str.replace(/[\s\.,;:!]+$/,'').toLowerCase()
+    if (!seen.has(key)) { seen.add(key); out.push(str) }
+  }
+  return out
+}
+const detectRiskFromText = (text) => {
+  if (!text) return ''
+  const lower = text.toLowerCase()
+  if (/(critical|severe|high risk)/.test(lower)) return 'high'
+  if (/(moderate risk|medium risk|amber)/.test(lower)) return 'moderate'
+  if (/(low risk|minor)/.test(lower)) return 'low'
+  return ''
+}
 const toKeyLabel = (k) => String(k).replace(/[\-_]+/g,' ').toUpperCase()
 
 const collectText = (val, out) => {
@@ -113,6 +132,32 @@ const lines = computed(() => {
   if (resultText.value) return [resultText.value]
   return []
 })
+const buildStructuredResult = () => {
+  const obj = (resultJson.value && typeof resultJson.value === 'object') ? resultJson.value : {}
+  const fallbackLines = lines.value.length ? lines.value : (resultText.value ? resultText.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean) : [])
+  const summary = summaryText.value || fallbackLines.slice(0, 2).join(' ') || (resultText.value || '').trim()
+  const title = titleText.value || String(obj.title || '').trim() || (summary ? summary.slice(0, 120) : 'Survey Analysis')
+  const findings = dedupeStrings(obj.findings) || []
+  if (!findings.length) findings.push(...dedupeStrings(findingsList.value.length ? findingsList.value : fallbackLines.slice(0, 5)))
+  const actions = dedupeStrings(obj.recommended_actions)
+  if (!actions.length) actions.push(...dedupeStrings(actionsList.value.length ? actionsList.value : []))
+  const risk = (obj.risk_level || obj.risk || obj.riskLevel || riskLevel.value || detectRiskFromText(resultText.value || summary) || 'moderate').toString().toLowerCase()
+  const keywordsSource = dedupeStrings(obj.keywords || obj.tags)
+  let keywordsOut = keywordsSource.length ? keywordsSource : dedupeStrings(keywords.value.length ? keywords.value : fallbackLines.slice(0, 8))
+  if (!keywordsOut.length && summary) {
+    keywordsOut = dedupeStrings(summary.split(/[^a-zA-Z0-9]+/).filter(Boolean).slice(0, 8))
+  }
+  const structured = {
+    title,
+    summary,
+    findings,
+    recommended_actions: actions,
+    risk_level: ['high','moderate','low'].includes(risk) ? risk : 'moderate',
+    keywords: keywordsOut,
+  }
+  try { localStorage.setItem('hs_last_result', JSON.stringify(structured)) } catch { /* ignore storage errors */ }
+  return structured
+}
 
 const syncHeights = () => {
   if (imgEl.value) {
@@ -227,6 +272,7 @@ const submit = async () => {
     for (const f of files.value) urls.push(await fileToDataUrl(f))
     if (urls.length) {
       imageUrl.value = urls[0]
+      try { localStorage.setItem('hs_last_image', urls[0]) } catch { /* ignore storage errors */ }
       await nextTick()
       if (imgEl.value) {
         if (imgEl.value.complete) syncHeights()
@@ -247,6 +293,10 @@ const submit = async () => {
     localStorage.setItem('hs_last_envelope', JSON.stringify(json))
     // Try to parse JSON for structured view
     resultJson.value = extractJSON(resultText.value) || parseMaybeJSON(resultText.value)
+    await nextTick()
+    buildStructuredResult()
+
+    window.location.href = '/rics-report.html'
 
     // Ensure results are visible (hide surveys) and scroll to result
     showSurveys.value = false

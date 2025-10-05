@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 from typing import Any, Dict, List, Optional
 import os
+import uuid
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, Form, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from db import mongodb
@@ -48,6 +52,13 @@ if load_dotenv:
 
 app = FastAPI(title="HomeScan AI Backend")
 
+UPLOAD_ROOT = Path(os.getenv("IMAGE_UPLOAD_DIR", Path(__file__).resolve().parent / "uploaded_images"))
+UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+UPLOAD_ROUTE = os.getenv("IMAGE_UPLOAD_ROUTE", "/assets/uploads")
+UPLOAD_ROUTE = "/" + UPLOAD_ROUTE.strip("/")
+IMAGE_PUBLIC_BASE = os.getenv("IMAGE_PUBLIC_BASE_URL") or os.getenv("PUBLIC_BASE_URL") or "http://localhost:8000"
+IMAGE_PUBLIC_BASE = IMAGE_PUBLIC_BASE.rstrip("/")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,6 +68,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.mount(UPLOAD_ROUTE, StaticFiles(directory=str(UPLOAD_ROOT)), name="uploaded-images")
 
 @app.get("/health")
 def health() -> Dict[str, str]:
@@ -174,6 +186,41 @@ def _select_model(provider: str, model: Optional[str]) -> str:
     if sanitized and not sanitized.lower().startswith("gpt"):
         return sanitized
     return MODEL_NAME
+
+
+# Helper to extract structured JSON from LLM text output
+def _extract_structured_json(text: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not text:
+        return None
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", text, re.IGNORECASE)
+    if fenced:
+        snippet = fenced.group(1).strip()
+        try:
+            parsed = json.loads(snippet)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        snippet = text[start:end + 1]
+        try:
+            parsed = json.loads(snippet)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+    return None
 
 
 @app.get("/health/openai")
@@ -382,12 +429,13 @@ async def put_tts_config(body: TTSConfig, authorization: Optional[str] = Header(
 async def scan_image(
     files: Optional[List[UploadFile]] = File(None),
     file: Optional[UploadFile] = File(None),
-    question_id: str = Form("rics_analyze"),
-    provider: str = Form("ollama"),
+    question_id: str = Form("rics_single_image"),
+    provider: str = Form("openai"),
     model: Optional[str] = Form(None),
     property_address: Optional[str] = Form(None),
     property_postcode: Optional[str] = Form(None),
-    survey_level: Optional[int] = Form(None),
+    property_city: Optional[str] = Form(None),
+    survey_level: Optional[int] = Form(3),
     authorization: Optional[str] = Header(default=None),
 ) -> JSONResponse:
     # Require auth and get user id
@@ -405,11 +453,16 @@ async def scan_image(
         to_process.append(file)
     if not to_process:
         return JSONResponse(status_code=400, content={"ok": False, "error": "No files uploaded"})
+    # Only accept a single image for analysis; ignore extra uploads
+    if len(to_process) > 1:
+        to_process = [to_process[0]]
 
     results: List[Dict[str, Any]] = []
     try:
         for f in to_process:
             contents = await f.read()
+            if not contents:
+                continue
             b64 = _b64_image(contents)
             if provider == "openai":
                 chosen_model = _select_model(provider, model)
@@ -419,8 +472,21 @@ async def scan_image(
                 chosen_model = _select_model(provider, model)
                 resp = await call_ollama(prompt, [b64], model=chosen_model)
                 used_model = chosen_model
+
+            original_ext = os.path.splitext(f.filename or "")[1].lower()
+            if original_ext not in {".jpg", ".jpeg", ".png", ".webp"}:
+                original_ext = ".jpg"
+            file_id = uuid.uuid4().hex
+            filename = f"{file_id}{original_ext}"
+            filepath = UPLOAD_ROOT / filename
+            filepath.write_bytes(contents)
+
+            image_url = f"{IMAGE_PUBLIC_BASE}{UPLOAD_ROUTE}/{filename}"
+
             results.append({
-                "image_b64": b64,
+                "image_id": file_id,
+                "image_path": filename,
+                "image_url": image_url,
                 "response": resp.get("response", ""),
             })
     except Exception as e:
@@ -443,6 +509,8 @@ async def scan_image(
         prop["address"] = property_address
     if property_postcode:
         prop["postcode"] = property_postcode
+    if property_city:
+        prop["city"] = property_city
     if prop:
         doc["property"] = prop
     surv: Dict[str, Any] = {}
@@ -463,6 +531,7 @@ async def scan_image(
         "question_id": question_id,
         "scan_id": str(ins.inserted_id),
         "raws": [r.get("response", "") for r in results],
+        "results": results,
     }
     if prop:
         payload["property"] = prop
@@ -471,6 +540,24 @@ async def scan_image(
     payload["created_at"] = now.isoformat()
     if len(results) == 1:
         payload["raw"] = results[0].get("response", "")
+
+    candidate_raw = payload.get("raw")
+    if not candidate_raw:
+        raw_list = payload.get("raws") or []
+        candidate_raw = raw_list[0] if raw_list else None
+
+    structured_json = _extract_structured_json(candidate_raw)
+
+    lead_image = results[0].get("image_url") if results else None
+    if structured_json is not None:
+        if lead_image and not structured_json.get("imageUrl"):
+            structured_json["imageUrl"] = lead_image
+        payload["structured"] = structured_json
+        doc["structured"] = structured_json
+
+    if candidate_raw:
+        doc["raw_text"] = candidate_raw
+
     return JSONResponse(content=payload)
 
 
@@ -507,9 +594,8 @@ async def get_scan(scan_id: str, authorization: Optional[str] = Header(default=N
             d["created_at"] = d["created_at"].isoformat()
         except Exception:
             d["created_at"] = str(d["created_at"])
-    # Do not return extremely large payloads; cap base64 length for previews
     for r in d.get("results", []):
-        b64 = r.get("image_b64")
-        if isinstance(b64, str) and len(b64) > 200:
-            r["image_b64_preview"] = b64[:200] + "..."
+        if "image_path" in r:
+            if not r.get("image_url"):
+                r["image_url"] = f"{IMAGE_PUBLIC_BASE}{UPLOAD_ROUTE}/{r['image_path']}"
     return JSONResponse({"ok": True, "scan": d})

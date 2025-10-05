@@ -26,6 +26,10 @@ export function AddressHeader({
   const date = new Date(dateISO)
   const formatted = isNaN(date.getTime()) ? dateISO : formatDateUK(date)
 
+  const trimmedAddress = (address || '').trim()
+  const trimmedPostcode = (postcode || '').trim()
+  const trimmedTitle = (title || '').trim()
+
   const container = [
     'rounded-xl print:rounded-none',
     'border', cream ? 'border-stone-200' : 'border-white/20',
@@ -40,17 +44,23 @@ export function AddressHeader({
     compact ? 'text-base' : 'text-lg',
   ].join(' ')
 
-  const sublineCls = [
-    'flex items-center gap-1 text-sm truncate',
-    cream ? 'text-slate-700' : 'text-white/85',
+  const addressHighlightCls = [
+    'inline-flex items-center gap-2 truncate',
+    'font-bold uppercase tracking-wide',
+    compact ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1.5',
+    'rounded-md border shadow-sm mb-2',
+    cream ? 'bg-amber-200/90 text-slate-900 border-amber-300' : 'bg-white/95 text-slate-900 border-white/80 backdrop-blur-sm',
   ].join(' ')
 
   const metaCls = [
     'text-xs', cream ? 'text-slate-600' : 'text-white/70',
   ].join(' ')
 
-  // Build fixed heading: "Residential Survey – ADDRESS, CITY" (address uppercased for emphasis)
-  const fixedHeading = `Residential Survey – ${((address || title || '–')).toUpperCase()}`
+  // Build fixed heading: "Residential Survey – ADDRESS" (address uppercased for emphasis when title missing)
+  const fallbackTitle = `Residential Survey – ${((trimmedAddress || trimmedTitle || '–')).toUpperCase()}`
+  const mainTitle = trimmedTitle || fallbackTitle
+  const locationLabel = [trimmedAddress, trimmedPostcode].filter(Boolean).join(' • ') || '–'
+  const pinCls = cream ? 'text-amber-900' : 'text-amber-600'
 
   return (
     <div className={container} aria-label="Survey header">
@@ -59,11 +69,11 @@ export function AddressHeader({
           <HomeIcon size={20} />
         </div>
         <div className="min-w-0">
-          <div className={titleCls} title={fixedHeading}>{fixedHeading}</div>
-          <div className={sublineCls} title={`${address} • ${postcode}`}>
-            <MapPin className={cream ? 'text-slate-600' : 'text-white/70'} size={14} />
-            <span className="truncate max-w-[80vw] md:max-w-[640px]">{address || '–'} • {postcode || '–'}</span>
+          <div className={addressHighlightCls} title={locationLabel}>
+            <MapPin className={pinCls} size={14} />
+            <span className="truncate max-w-[80vw] md:max-w-[640px]">{locationLabel}</span>
           </div>
+          <div className={titleCls} title={mainTitle}>{mainTitle}</div>
           <div className={metaCls}>L{level || '–'} • {formatted || '–'} • {standard || '–'}</div>
         </div>
       </div>

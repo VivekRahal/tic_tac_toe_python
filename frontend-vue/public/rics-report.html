@@ -489,14 +489,19 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const stored = loadFromStorage()
+            if (stored) {
+                populateReport(stored)
+                initializeAnimations()
+                return
+            }
             const raw = loadRaw()
             if (raw) {
                 renderRawOnly(raw)
-            } else {
-                const data = loadFromStorage() || surveyData
-                populateReport(data)
-                initializeAnimations()
+                return
             }
+            populateReport(surveyData)
+            initializeAnimations()
         });
 
         // Print styles override
