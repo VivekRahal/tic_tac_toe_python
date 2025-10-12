@@ -492,7 +492,9 @@ async def scan_image(
     except Exception as e:
         return JSONResponse(status_code=502, content={"ok": False, "error": f"Failed to query provider: {e}"})
 
-    # Persist scan document
+    lead_image = results[0].get("image_url") if results else None
+    lead_image_id = results[0].get("image_id") if results else None
+# Persist scan document
     now = __import__("datetime").datetime.utcnow()
     doc: Dict[str, Any] = {
         "user_id": ObjectId(user_id) if user_id else None,
@@ -503,7 +505,9 @@ async def scan_image(
         "images_count": len(results),
         "created_at": now,
     }
-    # Optional metadata
+    if lead_image_id:
+        doc["preview_image_id"] = lead_image_id
+# Optional metadata
     prop: Dict[str, Any] = {}
     if property_address:
         prop["address"] = property_address
@@ -521,6 +525,29 @@ async def scan_image(
             pass
     if surv:
         doc["survey"] = surv
+
+    raw_responses = [r.get("response", "") for r in results]
+    candidate_raw: Optional[str] = raw_responses[0] if len(results) == 1 else None
+    if not candidate_raw:
+        candidate_raw = next((resp for resp in raw_responses if resp), None)
+
+    structured_json = _extract_structured_json(candidate_raw)
+    if not lead_image and structured_json:
+        lead_image = structured_json.get("imageUrl") or structured_json.get("image_url")
+    if structured_json is not None:
+        if lead_image and not structured_json.get("imageUrl"):
+            structured_json["imageUrl"] = lead_image
+        doc["structured"] = structured_json
+    if candidate_raw:
+        doc["raw_text"] = candidate_raw
+    if lead_image and not lead_image_id:
+        # try to resolve ID from stored results
+        match = next((r for r in results if r.get("image_url") == lead_image), None)
+        if match:
+            lead_image_id = match.get("image_id")
+    if lead_image_id:
+        doc["preview_image_id"] = lead_image_id
+
     scans = mongodb.db["scans"]
     ins = await scans.insert_one(doc)
 
@@ -530,33 +557,20 @@ async def scan_image(
         "provider": provider,
         "question_id": question_id,
         "scan_id": str(ins.inserted_id),
-        "raws": [r.get("response", "") for r in results],
+        "raws": raw_responses,
         "results": results,
+        "created_at": now.isoformat(),
     }
     if prop:
         payload["property"] = prop
     if surv:
         payload["survey"] = surv
-    payload["created_at"] = now.isoformat()
-    if len(results) == 1:
-        payload["raw"] = results[0].get("response", "")
-
-    candidate_raw = payload.get("raw")
-    if not candidate_raw:
-        raw_list = payload.get("raws") or []
-        candidate_raw = raw_list[0] if raw_list else None
-
-    structured_json = _extract_structured_json(candidate_raw)
-
-    lead_image = results[0].get("image_url") if results else None
+    if len(results) == 1 and raw_responses:
+        payload["raw"] = raw_responses[0]
     if structured_json is not None:
-        if lead_image and not structured_json.get("imageUrl"):
-            structured_json["imageUrl"] = lead_image
         payload["structured"] = structured_json
-        doc["structured"] = structured_json
-
-    if candidate_raw:
-        doc["raw_text"] = candidate_raw
+    if lead_image:
+        payload["preview_image"] = lead_image
 
     return JSONResponse(content=payload)
 
@@ -569,12 +583,72 @@ async def list_scans(authorization: Optional[str] = Header(default=None)) -> JSO
     cursor = scans.find({"user_id": ObjectId(user_id)}).sort("created_at", -1).limit(50)
     items: List[Dict[str, Any]] = []
     async for d in cursor:
+        preview_image_url: Optional[str] = None
+
+        def _build_public_url(path: Optional[str]) -> Optional[str]:
+            if not path or not isinstance(path, str):
+                return None
+            trimmed = path.strip()
+            if not trimmed:
+                return None
+            if trimmed.lower().startswith(("http://", "https://", "data:", "blob:", "//")):
+                return trimmed
+            if trimmed.startswith("/"):
+                return f"{IMAGE_PUBLIC_BASE}{trimmed}"
+            return f"{IMAGE_PUBLIC_BASE}{UPLOAD_ROUTE}/{trimmed.lstrip('/')}"
+
+        def _build_data_url(raw: Optional[str]) -> Optional[str]:
+            if not raw or not isinstance(raw, str):
+                return None
+            stripped = raw.strip()
+            if not stripped:
+                return None
+            if stripped.lower().startswith("data:"):
+                return stripped
+            # best effort: treat as JPEG base64 payload
+            return f"data:image/jpeg;base64,{stripped}"
+
+        existing_preview = d.get("preview_image")
+        if isinstance(existing_preview, str) and existing_preview.strip():
+            preview_image_url = existing_preview.strip()
+            preview_image_url = _build_public_url(preview_image_url) or _build_data_url(preview_image_url) or preview_image_url
+
+        results = d.get("results") or []
+        preview_image_id = d.get("preview_image_id")
+        if isinstance(results, list) and preview_image_id:
+            match = next((r for r in results if r.get("image_id") == preview_image_id), None)
+            if match:
+                preview_image_url = _build_public_url(match.get("image_url"))
+                if not preview_image_url:
+                    preview_image_url = _build_public_url(match.get("image_path"))
+                if not preview_image_url:
+                    preview_image_url = _build_data_url(match.get("image_b64") or match.get("image_b64_preview") or match.get("image"))
+        if not preview_image_url and preview_image_id:
+            try:
+                candidate_file = next((p for p in UPLOAD_ROOT.glob(f"{preview_image_id}.*")), None)
+            except Exception:
+                candidate_file = None
+            if candidate_file:
+                rel_path = f"{UPLOAD_ROUTE}/{candidate_file.name}"
+                preview_image_url = f"{IMAGE_PUBLIC_BASE}{rel_path}"
+        if not preview_image_url and isinstance(results, list) and results:
+            first = results[0] or {}
+            preview_image_url = _build_public_url(first.get("image_url"))
+            if not preview_image_url:
+                preview_image_url = _build_public_url(first.get("image_path"))
+            if not preview_image_url:
+                preview_image_url = _build_data_url(first.get("image_b64") or first.get("image_b64_preview") or first.get("image"))
+        structured = d.get("structured")
+        if not preview_image_url and isinstance(structured, dict):
+            candidate = structured.get("imageUrl") or structured.get("image_url")
+            preview_image_url = _build_public_url(candidate) or _build_data_url(candidate)
         items.append({
             "id": str(d.get("_id")),
             "question_id": d.get("question_id"),
             "model": d.get("model"),
             "images_count": d.get("images_count", 0),
             "created_at": d.get("created_at").isoformat() if d.get("created_at") else None,
+            "preview_image": preview_image_url,
         })
     return JSONResponse({"ok": True, "items": items})
 

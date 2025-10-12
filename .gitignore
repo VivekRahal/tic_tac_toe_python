@@ -43,6 +43,12 @@ frontend-vue/node_modules/
 frontend-vue/dist/
 frontend-vue/.vite/
 
+# React build artifacts
+frontend-react/dist/
+
+# Uploaded test images
+backend/uploaded_images/
+
 # OS/editor
 .DS_Store
 .idea/
