@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Moon, Sun, Home, GripVertical, Dock, Maximize2, X, PanelsTopLeft } from 'lucide-react'
 import { clamp, sanitizeReportData, type Cost, type Rating, type ReportData } from '../utils/reportSanitizer'
+import { deriveUserId, getCurrentUserId, getUserScopedItem, setUserScopedItem } from '../utils/userScopedStorage'
 
 const riskToScore = (risk: string): number => {
   const value = risk.toLowerCase()
@@ -23,40 +24,63 @@ const InspectionReport: React.FC = () => {
   const isLight = theme === 'light'
   const hasAutoLoaded = useRef(false)
   const [fallbackImage, setFallbackImage] = useState('')
+  const [currentUserId, setCurrentUserId] = useState<string>(() => (typeof window === 'undefined' ? '' : getCurrentUserId()))
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
   }, [])
 
+  useEffect(() => {
+    const handleUserUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ user?: any }>).detail
+      if (detail && Object.prototype.hasOwnProperty.call(detail, 'user')) {
+        setCurrentUserId(deriveUserId(detail.user))
+        return
+      }
+      setCurrentUserId(getCurrentUserId())
+    }
+    window.addEventListener('hs_user_updated', handleUserUpdated as EventListener)
+    return () => window.removeEventListener('hs_user_updated', handleUserUpdated as EventListener)
+  }, [])
+
   const rememberReport = useCallback((data: ReportData) => {
     const pretty = JSON.stringify(data, null, 2)
     setCachedJson(pretty)
-    try {
-      localStorage.setItem('hs_last_report_json', pretty)
-    } catch {
-      /* ignore storage errors */
-    }
+    setUserScopedItem('hs_last_report_json', pretty, currentUserId)
     setJsonInput(pretty)
-  }, [])
+  }, [currentUserId])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     try {
-      const stored = localStorage.getItem('hs_last_report_json')
+      const stored = getUserScopedItem('hs_last_report_json', currentUserId)
       if (stored) {
         setCachedJson(stored)
         setJsonInput((current) => current || stored)
+      } else {
+        setCachedJson(null)
+        setJsonInput((current) => current && current.trim() ? current : '')
+        setReportData(null)
+        setShowUpload(true)
+        setError('')
       }
-      const storedImageB64 = localStorage.getItem('hs_last_image_b64') || ''
-      const storedImage = localStorage.getItem('hs_last_image') || ''
+      const storedImageB64 = getUserScopedItem('hs_last_image_b64', currentUserId) || ''
+      const storedImage = storedImageB64 ? '' : (getUserScopedItem('hs_last_image', currentUserId) || '')
       if (storedImageB64) {
         setFallbackImage(storedImageB64)
       } else if (storedImage) {
         setFallbackImage(storedImage)
+      } else {
+        setFallbackImage('')
       }
     } catch {
       /* ignore stale storage */
     }
-  }, [])
+  }, [currentUserId])
+
+  useEffect(() => {
+    hasAutoLoaded.current = false
+  }, [currentUserId])
 
   const handleUseCached = useCallback(() => {
     if (!cachedJson) return
@@ -197,7 +221,7 @@ const InspectionReport: React.FC = () => {
             >
               ◈ NEW FILE ◈
             </button>
-            {reportData && <ReportContent data={reportData} theme={theme} fallbackImage={fallbackImage} />}
+            {reportData && <ReportContent data={reportData} theme={theme} fallbackImage={fallbackImage} currentUserId={currentUserId} />}
           </>
         )}
       </div>
@@ -359,9 +383,10 @@ type ReportContentProps = {
   data: ReportData
   theme: 'dark' | 'light'
   fallbackImage?: string
+  currentUserId?: string
 }
 
-export const ReportContent: React.FC<ReportContentProps> = ({ data, theme, fallbackImage }) => {
+export const ReportContent: React.FC<ReportContentProps> = ({ data, theme, fallbackImage, currentUserId }) => {
   const isLight = theme === 'light'
   const level1Ratings = data.level1.ratings
   const level3Costs = data.level3.heavyCosts
@@ -538,21 +563,19 @@ export const ReportContent: React.FC<ReportContentProps> = ({ data, theme, fallb
     }
 
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const envelopeCandidate = readFromEnvelope(window.localStorage.getItem('hs_last_envelope'))
-        if (envelopeCandidate) return envelopeCandidate
+      const envelopeCandidate = readFromEnvelope(getUserScopedItem('hs_last_envelope', currentUserId))
+      if (envelopeCandidate) return envelopeCandidate
 
-        const imageCandidate = window.localStorage.getItem('hs_last_image')
-        if (imageCandidate && imageCandidate.trim() && !isPlaceholder(imageCandidate)) return imageCandidate
+      const storedImage = getUserScopedItem('hs_last_image', currentUserId)
+      if (storedImage && storedImage.trim() && !isPlaceholder(storedImage)) return storedImage
 
-        const structuredCandidateRaw = window.localStorage.getItem('hs_last_result')
-        if (structuredCandidateRaw) {
-          try {
-            const parsed = JSON.parse(structuredCandidateRaw)
-            if (parsed?.imageUrl && !isPlaceholder(String(parsed.imageUrl))) return String(parsed.imageUrl)
-          } catch {
-            /* ignore parse */
-          }
+      const structuredCandidateRaw = getUserScopedItem('hs_last_result', currentUserId)
+      if (structuredCandidateRaw) {
+        try {
+          const parsed = JSON.parse(structuredCandidateRaw)
+          if (parsed?.imageUrl && !isPlaceholder(String(parsed.imageUrl))) return String(parsed.imageUrl)
+        } catch {
+          /* ignore parse */
         }
       }
     } catch {
@@ -560,7 +583,7 @@ export const ReportContent: React.FC<ReportContentProps> = ({ data, theme, fallb
     }
 
     return ''
-  }, [data.imageUrl, fallbackImage])
+  }, [currentUserId, data.imageUrl, fallbackImage])
 
   useEffect(() => {
     if (import.meta.env?.DEV) {

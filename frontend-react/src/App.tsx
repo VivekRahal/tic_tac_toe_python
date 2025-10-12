@@ -22,7 +22,14 @@ import AddressHeader from './components/AddressHeader'
 import AdminTTS from './pages/AdminTTS'
 import ElevenLabsWidget from './components/ElevenLabsWidget'
 import InspectionReport, { ReportContent } from './pages/InspectionReport'
+import HistoryPage from './pages/HistoryPage'
 import { sanitizeReportData, type ReportData } from './utils/reportSanitizer'
+import {
+  deriveUserId,
+  getCurrentUserId,
+  getUserScopedItem,
+  setUserScopedItem,
+} from './utils/userScopedStorage'
 import type { RICSDashboardCase } from './types/ricsDashboard'
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000'
@@ -284,7 +291,7 @@ function Nav({ page, setPage, user, onSignOut }: { page: string, setPage: (p: st
   const initial = (user?.name || user?.email || '').trim().charAt(0).toUpperCase()
   return (
     <div className="fixed inset-x-0 top-0 z-50 px-0">
-      <div className="relative mx-auto w-full overflow-hidden border border-white/20 bg-white/8 px-4 py-3 backdrop-blur-3xl shadow-[0_40px_110px_rgba(8,14,46,0.55)] md:rounded-[28px] md:px-8">
+      <div className="relative mx-auto w-full overflow-visible border border-white/20 bg-white/8 px-4 py-3 backdrop-blur-3xl shadow-[0_40px_110px_rgba(8,14,46,0.55)] md:rounded-[28px] md:px-8">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(99,102,241,0.32),transparent_55%),radial-gradient(circle_at_85%_0%,rgba(56,189,248,0.25),transparent_65%)] opacity-70" />
         <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
         <div className="relative flex items-center justify-between gap-4">
@@ -299,6 +306,9 @@ function Nav({ page, setPage, user, onSignOut }: { page: string, setPage: (p: st
           <div className="flex items-center gap-2">
             <NavButton icon={<Home className="h-4 w-4"/>} label="Home" active={page==='home'} onClick={()=>setPage('home')} />
             <NavButton icon={<Camera className="h-4 w-4"/>} label="Scan" active={page==='scan'} onClick={()=>setPage('scan')} />
+            {user && (
+              <NavButton icon={<LayoutGrid className="h-4 w-4" />} label="History" active={page==='history'} onClick={()=>setPage('history')} />
+            )}
             {user?.role === 'admin' && (
               <NavButton icon={<FileTextIcon className="h-4 w-4"/>} label="Report" active={page==='report'} onClick={()=>setPage('report')} />
             )}
@@ -670,6 +680,20 @@ function ScanPage(){
   const [progress, setProgress] = useState(0)
   const reportRef = useRef<HTMLDivElement | null>(null)
   const [showReportOverlay, setShowReportOverlay] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string>(() => (typeof window === 'undefined' ? '' : getCurrentUserId()))
+
+  useEffect(() => {
+    const handleUserUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ user?: any }>).detail
+      if (detail && Object.prototype.hasOwnProperty.call(detail, 'user')) {
+        setCurrentUserId(deriveUserId(detail.user))
+        return
+      }
+      setCurrentUserId(getCurrentUserId())
+    }
+    window.addEventListener('hs_user_updated', handleUserUpdated as EventListener)
+    return () => window.removeEventListener('hs_user_updated', handleUserUpdated as EventListener)
+  }, [])
 
   const isPlaceholderImage = useCallback((url: string | null | undefined) => {
     if (!url) return false
@@ -802,22 +826,22 @@ function ScanPage(){
   }, [analysisMeta?.created_at])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     try {
-      const storedB64 = localStorage.getItem('hs_last_image_b64') || ''
-      if (storedB64) {
-        setCachedImageB64(storedB64)
-        if (!reportImageSrc) updateReportImage(storedB64)
-      }
-      if (!storedB64) {
-        const storedPath = localStorage.getItem('hs_last_image') || ''
-        if (storedPath && !reportImageSrc) {
+      const storedB64 = getUserScopedItem('hs_last_image_b64', currentUserId) || ''
+      const storedPath = storedB64 ? '' : (getUserScopedItem('hs_last_image', currentUserId) || '')
+      setCachedImageB64(storedB64)
+      if (!reportImageSrc) {
+        if (storedB64) {
+          updateReportImage(storedB64)
+        } else if (storedPath) {
           updateReportImage(storedPath)
         }
       }
     } catch {
-      /* ignore */
+      /* ignore storage */
     }
-  }, [])
+  }, [currentUserId, reportImageSrc, updateReportImage])
 
   useEffect(() => {
     if (!files.length) {
@@ -854,20 +878,41 @@ function ScanPage(){
   }, [loading, progress])
 
   useEffect(() => {
+    let hydrated = false
     try {
-      const saved = JSON.parse(localStorage.getItem('hs_last_envelope') || 'null')
-      if (saved) {
-        syncAnalysisFromEnvelope(saved)
+      const rawSaved = getUserScopedItem('hs_last_envelope', currentUserId)
+      if (rawSaved) {
+        const saved = JSON.parse(rawSaved)
+        if (!saved?.user_id || !currentUserId || saved.user_id === currentUserId) {
+          hydrated = true
+          syncAnalysisFromEnvelope(saved)
+        }
       }
-    } catch {}
+    } catch {
+      /* ignore storage */
+    }
+    if (!hydrated) {
+      setAnalysisStructured(null)
+      setAnalysisClassic(null)
+      setAnalysisRaw('')
+      setAnalysisMeta(null)
+      setAnalysisImages([])
+      setAnalysisProperty(null)
+      setAddr('')
+      setCity('')
+      setPc('')
+      setReportImageSrc('')
+      setCachedImageB64('')
+    }
     const handler = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (!detail) return
+      if (detail?.user_id && currentUserId && detail.user_id !== currentUserId) return
       syncAnalysisFromEnvelope(detail)
     }
     window.addEventListener('hs_envelope_updated', handler as EventListener)
     return () => window.removeEventListener('hs_envelope_updated', handler as EventListener)
-  }, [])
+  }, [currentUserId])
 
   const reportData = useMemo<ReportData | null>(() => {
     if (analysisClassic) {
@@ -994,12 +1039,12 @@ function ScanPage(){
     if (!resultImages.length && envelopePreview) {
       resultImages = [envelopePreview]
       updateReportImage(envelopePreview)
-        try {
-          localStorage.setItem('hs_last_image_b64', envelopePreview)
-          setCachedImageB64(envelopePreview)
-        } catch {
-          /* ignore storage */
-        }
+      try {
+        setUserScopedItem('hs_last_image_b64', envelopePreview, currentUserId)
+        setCachedImageB64(envelopePreview)
+      } catch {
+        /* ignore storage */
+      }
     }
     const leadImage = resultImages[0] || ''
     if (leadImage) {
@@ -1019,19 +1064,19 @@ function ScanPage(){
       : null
 
     if (structuredNormalized) {
-      try { localStorage.setItem('hs_last_result', JSON.stringify(structuredNormalized)) } catch { /* ignore storage */ }
+      setUserScopedItem('hs_last_result', JSON.stringify(structuredNormalized), currentUserId)
     }
     if (classicWithImage) {
-      try { localStorage.setItem('hs_last_report_json', JSON.stringify(classicWithImage, null, 2)) } catch { /* ignore storage */ }
+      setUserScopedItem('hs_last_report_json', JSON.stringify(classicWithImage, null, 2), currentUserId)
     }
     if (leadImage) {
-      try { localStorage.setItem('hs_last_image', leadImage) } catch { /* ignore storage */ }
+      setUserScopedItem('hs_last_image', leadImage, currentUserId)
     }
     if (rawText) {
-      try { localStorage.setItem('hs_last_raw', rawText) } catch { /* ignore storage */ }
+      setUserScopedItem('hs_last_raw', rawText, currentUserId)
     }
     if (Array.isArray(envelope?.raws)) {
-      try { localStorage.setItem('hs_last_raws', JSON.stringify(envelope.raws)) } catch { /* ignore storage */ }
+      setUserScopedItem('hs_last_raws', JSON.stringify(envelope.raws), currentUserId)
     }
 
     setAnalysisStructured(structuredNormalized ?? null)
@@ -1051,12 +1096,12 @@ function ScanPage(){
     if (!resultImages.length && envelopePreview) {
       resultImages = [envelopePreview]
       updateReportImage(envelopePreview)
-        try {
-          localStorage.setItem('hs_last_image_b64', envelopePreview)
-          setCachedImageB64(envelopePreview)
-        } catch {
-          /* ignore storage */
-        }
+      try {
+        setUserScopedItem('hs_last_image_b64', envelopePreview, currentUserId)
+        setCachedImageB64(envelopePreview)
+      } catch {
+        /* ignore storage */
+      }
     }
     setAnalysisImages(resultImages.slice(0, 1))
     if (resultImages[0]) {
@@ -1075,7 +1120,12 @@ function ScanPage(){
     if (envelope && typeof envelope === 'object') {
       if (structuredNormalized) envelope.structured = structuredNormalized
       if (classicWithImage) envelope.classic = classicWithImage
-      try { localStorage.setItem('hs_last_envelope', JSON.stringify(envelope)) } catch { /* ignore storage */ }
+      const envelopeForUser = { ...envelope, user_id: currentUserId }
+      try {
+        setUserScopedItem('hs_last_envelope', JSON.stringify(envelopeForUser), currentUserId)
+      } catch {
+        /* ignore storage */
+      }
     }
   }
 
@@ -1097,7 +1147,7 @@ function ScanPage(){
           setPendingImageData(reader.result)
           updateReportImage(reader.result)
           try {
-            localStorage.setItem('hs_last_image_b64', reader.result)
+            setUserScopedItem('hs_last_image_b64', reader.result, currentUserId)
             setCachedImageB64(reader.result)
           } catch {
             /* ignore storage */
@@ -1175,7 +1225,7 @@ function ScanPage(){
         envelope.preview_image = previewImage
         updateReportImage(previewImage)
         try {
-          localStorage.setItem('hs_last_image_b64', previewImage)
+          setUserScopedItem('hs_last_image_b64', previewImage, currentUserId)
           setCachedImageB64(previewImage)
         } catch {
           /* ignore storage */
@@ -1187,18 +1237,19 @@ function ScanPage(){
       if (classicWithImage) envelope.classic = classicWithImage
 
       try {
-        if (leadImage) localStorage.setItem('hs_last_image', leadImage)
-        if (structuredNormalized) localStorage.setItem('hs_last_result', JSON.stringify(structuredNormalized))
-        if (classicWithImage) localStorage.setItem('hs_last_report_json', JSON.stringify(classicWithImage, null, 2))
-        if (rawText) localStorage.setItem('hs_last_raw', rawText)
-        if (Array.isArray(j?.raws)) localStorage.setItem('hs_last_raws', JSON.stringify(j.raws))
+        if (leadImage) setUserScopedItem('hs_last_image', leadImage, currentUserId)
+        if (structuredNormalized) setUserScopedItem('hs_last_result', JSON.stringify(structuredNormalized), currentUserId)
+        if (classicWithImage) setUserScopedItem('hs_last_report_json', JSON.stringify(classicWithImage, null, 2), currentUserId)
+        if (rawText) setUserScopedItem('hs_last_raw', rawText, currentUserId)
+        if (Array.isArray(j?.raws)) setUserScopedItem('hs_last_raws', JSON.stringify(j.raws), currentUserId)
       } catch {
         /* ignore storage errors */
       }
 
-      localStorage.setItem('hs_last_envelope', JSON.stringify(envelope))
-      window.dispatchEvent(new CustomEvent('hs_envelope_updated', { detail: envelope }))
-      syncAnalysisFromEnvelope(envelope)
+      const scopedEnvelope = { ...envelope, user_id: currentUserId }
+      setUserScopedItem('hs_last_envelope', JSON.stringify(scopedEnvelope), currentUserId)
+      window.dispatchEvent(new CustomEvent('hs_envelope_updated', { detail: scopedEnvelope }))
+      syncAnalysisFromEnvelope(scopedEnvelope)
       setShowReportOverlay(true)
       setFiles([])
     }catch(e){ alert((e as Error).message) }
@@ -1273,11 +1324,9 @@ function ScanPage(){
               </div>
               <div className="rounded-3xl border border-white/20 bg-white/10 px-5 py-6 text-white/70">
                 <div className="text-sm uppercase tracking-[0.35em] text-white/65">Dropzone</div>
-                <div className="mt-4 rounded-2xl border border-dashed border-white/25 bg-black/30 px-4 py-6 text-center text-sm text-white/70">
-                  Drag & drop a lead facade or interior moisture frame. We auto-normalise lighting and align perspective before inference begins.
-                </div>
+                <div className="mt-4 rounded-2xl border border-dashed border-white/25 bg-black/30 px-4 py-6" />
               </div>
-              {files.length>0 ? (
+              {files.length > 0 && (
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                   {files.map((f,i)=> (
                     <div key={i} className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-[0_28px_65px_rgba(8,14,46,0.55)]">
@@ -1289,11 +1338,6 @@ function ScanPage(){
                       <span className="relative z-10 m-3 inline-block rounded-full border border-white/30 bg-white/15 px-2 py-1 text-[10px] uppercase tracking-[0.35em] text-white">{f.name}</span>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-[11px] text-white/60">
-                  <span>Need a quick demo?</span>
-                  <button type="button" className="rounded-xl border border-white/25 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.35em] text-white" onClick={() => window.dispatchEvent(new CustomEvent('hs_envelope_request_sample'))}>Load sample envelope</button>
                 </div>
               )}
             </div>
@@ -1415,6 +1459,7 @@ function LoginPage({ goScan, goSignup }:{ goScan: ()=>void, goSignup: ()=>void }
       }
       localStorage.setItem('hs_token', j.token)
       localStorage.setItem('hs_user', JSON.stringify(j.user||{}))
+      window.dispatchEvent(new CustomEvent('hs_user_updated', { detail: { user: j.user || null } }))
       goScan()
     }catch(e:any){ setError(e.message || 'Login failed') }
     finally{ setLoading(false) }
@@ -1452,6 +1497,7 @@ function SignupPage({ goScan, goLogin }:{ goScan: ()=>void, goLogin: ()=>void })
       if(!res.ok || j?.ok===false){ throw new Error(j?.detail || 'Signup failed') }
       localStorage.setItem('hs_token', j.token)
       localStorage.setItem('hs_user', JSON.stringify(j.user||{}))
+      window.dispatchEvent(new CustomEvent('hs_user_updated', { detail: { user: j.user || null } }))
       goScan()
     }catch(e:any){ setError(e.message || 'Signup failed') }
     finally{ setLoading(false) }
@@ -1474,7 +1520,7 @@ function SignupPage({ goScan, goLogin }:{ goScan: ()=>void, goLogin: ()=>void })
 }
 
 export default function App(){
-  const [page,setPage] = useState<'home'|'login'|'signup'|'scan'|'admin'|'report'>('home')
+  const [page,setPage] = useState<'home'|'login'|'signup'|'scan'|'history'|'admin'|'report'>('home')
   const [user,setUser] = useState<any>(null)
 
   const pageToPath = (p: typeof page): string => {
@@ -1482,6 +1528,7 @@ export default function App(){
     if (p === 'login') return '/login'
     if (p === 'signup') return '/signup'
     if (p === 'scan') return '/scan'
+    if (p === 'history') return '/history'
     if (p === 'admin') return '/admin/tts'
     if (p === 'report') return '/report'
     return '/'
@@ -1490,13 +1537,14 @@ export default function App(){
     if (path === '/login') return 'login'
     if (path === '/signup') return 'signup'
     if (path === '/scan') return 'scan'
+    if (path === '/history') return 'history'
     if (path === '/admin/tts') return 'admin'
     if (path === '/report') return 'report'
     return 'home'
   }
   const navigate = (p: typeof page) => {
     // auth guard for scan
-    if ((p === 'scan') && !localStorage.getItem('hs_token')) {
+    if ((p === 'scan' || p === 'history') && !localStorage.getItem('hs_token')) {
       window.history.pushState({}, '', '/login')
       setPage('login')
       return
@@ -1543,15 +1591,34 @@ export default function App(){
       }
     } catch {}
     const onPop = () => setPage(pathToPage(window.location.pathname))
+    const handleUserUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ user?: any }>).detail
+      if (detail?.user) {
+        setUser(detail.user)
+        return
+      }
+      try {
+        const refreshed = JSON.parse(localStorage.getItem('hs_user') || 'null')
+        setUser(refreshed || null)
+      } catch {
+        setUser(null)
+      }
+    }
+
     window.addEventListener('popstate', onPop)
+    window.addEventListener('hs_user_updated', handleUserUpdated as EventListener)
     // bootstrap user
     try { const u = JSON.parse(localStorage.getItem('hs_user')||'null'); if (u) setUser(u) } catch {}
-    return () => window.removeEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      window.removeEventListener('hs_user_updated', handleUserUpdated as EventListener)
+    }
   }, [])
 
   const signOut = () => {
     localStorage.removeItem('hs_token')
     localStorage.removeItem('hs_user')
+    window.dispatchEvent(new CustomEvent('hs_user_updated', { detail: { user: null } }))
     setUser(null)
     navigate('home')
   }
@@ -1565,6 +1632,7 @@ export default function App(){
       {page==='login' && <LoginPage goScan={()=>navigate('scan')} goSignup={()=>navigate('signup')} />}
       {page==='signup' && <SignupPage goScan={()=>navigate('scan')} goLogin={()=>navigate('login')} />}
       {page==='scan' && <ScanPage />} 
+      {page==='history' && <HistoryPage />}
       {page==='admin' && <AdminTTS/>}
       {page==='report' && <InspectionReport />}
       <footer className="mx-auto mb-10 mt-16 w-[min(1200px,92vw)] text-center text-xs text-white/50">© {new Date().getFullYear()} HomeSurvey AI</footer>

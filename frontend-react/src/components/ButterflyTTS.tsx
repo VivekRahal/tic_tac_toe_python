@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { getCurrentUserId, getUserScopedItem } from '../utils/userScopedStorage'
 
 type Props = {
   apiBase: string
@@ -57,6 +58,8 @@ export default function ButterflyTTS({ apiBase }: Props) {
       // Optionally auto-read when new result arrives
       const data = e?.detail || null
       if (!data) return
+      const activeUser = getCurrentUserId()
+      if (data?.user_id && activeUser && data.user_id !== activeUser) return
       const summary = data?.raws && Array.isArray(data.raws) ? data.raws[0] : (data?.raw||'')
       // Do not auto-read huge texts
       if (summary) speak(summary.slice(0, 800))
@@ -133,7 +136,8 @@ export default function ButterflyTTS({ apiBase }: Props) {
 
   const summarizeLatest = () => {
     try {
-      const env = JSON.parse(localStorage.getItem('hs_last_envelope')||'{}')
+      const rawEnvelope = getUserScopedItem('hs_last_envelope')
+      const env = rawEnvelope ? JSON.parse(rawEnvelope) : {}
       const raw = Array.isArray(env?.raws) ? (env.raws[0]||'') : (env?.raw||'')
       const parsed = extractJSON(raw)
       const summary = parsed?.summary || raw
