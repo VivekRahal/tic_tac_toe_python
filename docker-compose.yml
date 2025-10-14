@@ -35,13 +35,15 @@ services:
       - JWT_EXP_DAYS=7
     ports:
       - "8000:8000"
+    volumes:
+      - backend-uploads:/app/uploaded_images
 
   frontend:
     build:
       context: ./frontend-react
       args:
-        # Browser calls the backend directly on localhost:8000
-        - VITE_API_BASE=http://localhost:8000
+        # Use relative API calls proxied by nginx (/api -> backend)
+        - VITE_API_BASE=
     restart: unless-stopped
     depends_on:
       - backend
@@ -51,3 +53,4 @@ services:
 volumes:
   mongo-data:
   ollama:
+  backend-uploads:

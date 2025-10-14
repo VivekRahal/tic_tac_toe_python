@@ -5,8 +5,8 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 
-# Allow overriding API base at build time (used by Vite)
-ARG VITE_API_BASE
+# Allow overriding API base at build time (used by Vite). Default to empty string for relative /api proxying.
+ARG VITE_API_BASE=""
 ENV VITE_API_BASE=${VITE_API_BASE}
 
 RUN npm run build
@@ -23,4 +23,3 @@ COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
-
