@@ -1,9 +1,4 @@
-{
-  # Disable automatic HTTPS for local/container environments.
-  auto_https off
-}
-
-:80 {
+pro-aws.housesurveyai.co.uk, www.housesurveyai.co.uk {
   encode gzip
 
   @api path /api/* /docs* /openapi.json
@@ -14,4 +9,9 @@
   handle {
     reverse_proxy frontend:80
   }
+}
+
+api-aws.housesurveyai.co.uk {
+  encode gzip
+  reverse_proxy backend:8000
 }
