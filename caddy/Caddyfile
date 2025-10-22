@@ -1,4 +1,4 @@
-pro-aws.housesurveyai.co.uk, www.housesurveyai.co.uk {
+localhost, pro-aws.housesurveyai.co.uk, www.housesurveyai.co.uk {
   encode gzip
 
   @api path /api/* /docs* /openapi.json
