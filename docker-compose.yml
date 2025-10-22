@@ -9,29 +9,29 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    ports:
-      - "11434:11434"  # expose for local debugging / model pulling
-    volumes:
-      - ollama:/root/.ollama
-    environment:
-      - OLLAMA_KEEP_ALIVE=2h
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"  # expose for local debugging / model pulling
+  #   volumes:
+  #     - ollama:/root/.ollama
+  #   environment:
+  #     - OLLAMA_KEEP_ALIVE=2h
 
   backend:
     build: ./backend
     restart: unless-stopped
     depends_on:
       - mongodb
-      - ollama
+      # - ollama
     env_file:
       - ./backend/.env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=ukrics
-      - OLLAMA_URL=http://ollama:11434/api/generate
-      - OLLAMA_MODEL=llava:7b
+      # - OLLAMA_URL=http://ollama:11434/api/generate
+      # - OLLAMA_MODEL=llava:7b
       - JWT_EXP_DAYS=7
     ports:
       - "8000:8000"
@@ -52,5 +52,5 @@ services:
 
 volumes:
   mongo-data:
-  ollama:
+  # ollama:
   backend-uploads:
