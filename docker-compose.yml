@@ -47,8 +47,16 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+
+  caddy:
+    build: ./caddy
+    depends_on:
+      - backend
+      - frontend
     ports:
-      - "8080:80"
+      - "80:80"
+      # - "443:443"  # enable when TLS is configured
+    restart: unless-stopped
 
 volumes:
   mongo-data:
