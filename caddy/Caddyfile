@@ -1,5 +1,4 @@
-localhost {
-  auto_https off
+http://localhost {
   encode gzip
 
   @api path /api/* /docs* /openapi.json
