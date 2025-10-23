@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Clock, Image, Loader2, RefreshCcw, Sparkles } from 'lucide-react'
 import { deriveUserId, getCurrentUserId, getUserScopedItem, setUserScopedItem } from '../utils/userScopedStorage'
+import { resolveApiBase } from '../utils/apiBase'
 
 type HistoryItem = {
   id: string
@@ -26,7 +27,7 @@ type ScanEnvelope = {
   preview_image?: string
 }
 
-const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000'
+const API_BASE = resolveApiBase()
 const previewStorageKey = (scanId: string) => `hs_scan_preview_${scanId}`
 
 const HistoryPage: React.FC = () => {

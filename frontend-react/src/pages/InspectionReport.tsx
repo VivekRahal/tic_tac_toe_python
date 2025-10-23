@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Moon, Sun, Home, GripVertical, Dock, Maximize2, X, PanelsTopLeft } from 'lucide-react'
 import { clamp, sanitizeReportData, type Cost, type Rating, type ReportData } from '../utils/reportSanitizer'
+import { resolveApiBase } from '../utils/apiBase'
 import { deriveUserId, getCurrentUserId, getUserScopedItem, setUserScopedItem } from '../utils/userScopedStorage'
 
 const riskToScore = (risk: string): number => {
@@ -11,7 +12,7 @@ const riskToScore = (risk: string): number => {
   return 40
 }
 
-const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000'
+const API_BASE = resolveApiBase()
 
 const InspectionReport: React.FC = () => {
   const [showUpload, setShowUpload] = useState(true)

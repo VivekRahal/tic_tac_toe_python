@@ -24,6 +24,7 @@ import ElevenLabsWidget from './components/ElevenLabsWidget'
 import InspectionReport, { ReportContent } from './pages/InspectionReport'
 import HistoryPage from './pages/HistoryPage'
 import { sanitizeReportData, type ReportData } from './utils/reportSanitizer'
+import { resolveApiBase } from './utils/apiBase'
 import {
   deriveUserId,
   getCurrentUserId,
@@ -32,7 +33,7 @@ import {
 } from './utils/userScopedStorage'
 import type { RICSDashboardCase } from './types/ricsDashboard'
 
-const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000'
+const API_BASE = resolveApiBase()
 
 const pressable = 'pressable'
 const glass = 'glass'

@@ -1,9 +1,10 @@
 import * as React from 'react'
+import { resolveApiBase } from '../utils/apiBase'
 
 type Voice = { id: string; name: string }
 
 export default function AdminTTS(){
-  const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000'
+  const API_BASE = resolveApiBase()
   const [voices, setVoices] = React.useState<Voice[]>([])
   const [config, setConfig] = React.useState<any>({})
   const [loading, setLoading] = React.useState(true)
@@ -75,4 +76,3 @@ export default function AdminTTS(){
     </div>
   )
 }
-
